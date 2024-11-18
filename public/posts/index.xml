@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Posts on My New Hugo Site</title>
+    <title>Posts on Operating System</title>
     <link>http://localhost:1313/posts/</link>
-    <description>Recent content in Posts on My New Hugo Site</description>
+    <description>Recent content in Posts on Operating System</description>
     <generator>Hugo</generator>
     <language>en-us</language>
     <lastBuildDate>Thu, 14 Nov 2024 01:05:42 +0800</lastBuildDate>
@@ -13,7 +13,7 @@
       <link>http://localhost:1313/posts/my-first-post/</link>
       <pubDate>Thu, 14 Nov 2024 01:05:42 +0800</pubDate>
       <guid>http://localhost:1313/posts/my-first-post/</guid>
-      <description>&lt;p&gt;This is my first page.&lt;/p&gt;</description>
+      <description>&lt;h2 id=&#34;introcudtion-of-operating-system&#34;&gt;Introcudtion of Operating System&lt;/h2&gt;&#xA;&lt;p&gt;This is my first page.&lt;/p&gt;</description>
     </item>
   </channel>
 </rss>
