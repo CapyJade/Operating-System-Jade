@@ -6,5 +6,17 @@ theme = 'hugo-book'
 disqusShortname = "Operating System"
 
 enableGitInfo = true
-BookSearch = true
-BookComments = true
+
+[params]
+  # (Optional, default true) Enables search function with flexsearch,
+  # Index is built on fly, therefore it might slowdown your website.
+  # Configuration for indexing can be adjusted in i18n folder per language.
+  BookSearch = true
+
+  # (Optional, default true) Enables comments template on pages
+  # By default partials/docs/comments.html includes Disqus template
+  # See https://gohugo.io/content-management/comments/#configure-disqus
+  # Can be overwritten by same param in page frontmatter
+  BookComments = true
+
+  

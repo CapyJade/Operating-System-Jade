@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>欢迎 on Operating System</title>
+    <title>Docs on Operating System</title>
     <link>http://localhost:1313/docs/</link>
-    <description>Recent content in 欢迎 on Operating System</description>
+    <description>Recent content in Docs on Operating System</description>
     <generator>Hugo</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 14 Nov 2024 01:05:42 +0800</lastBuildDate>
+    <lastBuildDate>Wed, 20 Nov 2024 23:16:28 +0800</lastBuildDate>
     <atom:link href="http://localhost:1313/docs/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>My First Post</title>

@@ -276,11 +276,11 @@ desktop computers, and servers.
 - 作为硬件和**用户程序**的中介角色，为用户提供对硬件间接操作的直观服务。
 - 提供**可控制的程序交互**，使得不同的程序可以共享数据和一起工作。
 
-![general-purpose operating system](image-3.png)
+![general-purpose operating system](/images/image-3.png)
 
 **Figure 1.1 general-purpose operating system**:  这张图可以从整体描述用户和计算机硬件之间的关系，一般而言，用户与软件应用（app)进行交互，而这些app运行在操作系统搭载的环境中，而操作系统作为一个中介来跟底层的硬件交互。
 我们看一下这张简单图示的扩展版
-![alt text](image-4.png) （***Figure 1.3 Operating Systems Principles & Practice， Thomas Anderson, Mike Dahlin***)
+![alt text](/images/image-4.png) （***Figure 1.3 Operating Systems Principles & Practice， Thomas Anderson, Mike Dahlin***)
 
 这张图更详细的描述了操作系统的功能，在最低层，硬件提供了处理器（Processors, Graphics Processor)、内存(Memory)以及一组用于存储数据(Disk)和与外界通信的设备(Network)。硬件还提供了一些基本操作，供操作系统用于故障隔离和同步(fault isolation and synchronization)。操作系统运行在计算机上作为最低层的软件。它包含一个用于管理各种硬件设备的设备专用层（device-specific layer），以及一组提供给应用程序的设备无关服务（device-independent services）。由于操作系统必须隔离恶意和有漏洞的应用程序，防止它们干扰其他应用程序或操作系统本身，因此操作系统的大部分运行在一个与应用程序代码分离的、受到保护的执行环境中。此外，操作系统的一部分也可以作为系统库运行，并链接到每个应用程序中。
 反过来，应用程序运行在由操作系统内核提供的执行上下文中。这个应用程序上下文不仅仅是硬件设备之上的一个简单抽象；它是一个虚拟环境，具有以下特点：
@@ -362,7 +362,7 @@ desktop computers, and servers.
 （此章节来自*Operating Systems Principles & Practice*）
 
 各位可以使用上述的概念来更好地理解 Lecture 10 page 4的内容（这些机制是什么，在老师的script里面已经有提及，我主要是为了解释为什么有这些机制），也可以将此页PPT作为我们的outline来使用：
-![alt text](image-5.png)
+![alt text](/images/image-5.png)
 ### 1.3 Kernel Abstraction
 操作系统最主要的机制就是保护系统的内部——防止一些错误操作的用户或者程序影响其他的程序或者操作系统本身。保护机制其实满足了我们之前的部分评价标准：
 **可靠性(Reliability)**
@@ -391,7 +391,7 @@ desktop computers, and servers.
 ***本章节的顺序稍微不同于课程顺序，将先解释什么是 Process，然后再解释Process Management相关的问题。**
 ### 2.1 Process
 首先我们回顾一下课程上关于进程（Process)的定义：
-![alt text](image-6.png)
+![alt text](/images/image-6.png)
 在课件中，"Program in execution" 指的是在运行中的程序，它是一个在执行的实体，不是一个静态存储的物体，这是一个非常重要的概念，只有了解了这个概念，才能明白进程的存在意义。
 
 #### 2.1.1 Processes and Execution of Program
@@ -468,7 +468,7 @@ Memory Management: Details about memory allocated to the process (e.g., page tab
 2. 调用在 `<asm/system.h>` 中声明的 `switch_to()`，将处理器状态从前一个进程切换到当前进程。这涉及保存和恢复栈信息、处理器寄存器以及其他架构特定的状态，这些状态必须按进程进行管理和恢复。
 
 然而，内核必须知道何时调用 `schedule()`。如果只有在代码显式调用时才执行 `schedule()`，用户空间程序可能会无限运行。为了解决这个问题，内核使用 `need_resched` 标志来指示是否应进行重新调度（如表 4.1 所示）。当一个进程需要被抢占时，`scheduler_tick()` 会设置这个标志；当一个优先级高于当前运行进程的进程被唤醒时，`try_to_wake_up()` 也会设置这个标志。内核会检查该标志，发现其被设置后，会调用 `schedule()` 切换到一个新进程。这个标志向内核传递一个信号，表示调度器应尽快被调用，因为有另一个进程更需要运行。
-![alt text](ContextSwtiching.png)
+![alt text](/images/ContextSwitching.png)
 在返回用户空间或从中断返回时，会检查 `need_resched` 标志。如果该标志被设置，内核会在继续运行之前调用调度器。
 
 这个标志是针对每个进程的，而不是简单地设置为全局变量，因为访问进程描述符中的值比访问全局变量更快（这是由于访问当前进程描述符的速度较快，并且其很有可能已经被缓存）。在历史上，这个标志在 2.2 版本内核之前是全局的。在 2.2 和 2.4 版本中，这个标志是 `task_struct` 结构中的一个 `int` 变量。在 2.6 版本中，它被移动到 `thread_info` 结构中的一个特殊标志变量的单个位中。
