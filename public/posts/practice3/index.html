@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="
+  Operating System TA
+  #
+
+
+  此文档是为了让各位更好理解UWE-Neusoft操作系统课程的内容，其中经过阅读产出的解释会放上原文链接，此文档使用双语，便于各位复习考试。
+  #
+
+
+  目录
+  #
+
+
+
+Basic Concept
+
+Related Concepts
+
+CPU
+Register
+RAM
+Latency Numbers
+
+
+Operating System Definition
+Kernel Abstraction
+
+
+
+Process &amp; Threads
+
+Process
+
+Processes and Execution of Program
+PCB
+Process state&amp;Process Blocking &amp;Context Switch
+
+
+Threads
+
+
+
+Concurrency
+
+
+System Calls
+
+
+
+  Chapter 1 Basic Concept
+  #
+
+
+  1.1 Related Concepts
+  #
+
+
+  1.1.1 CPU 中央处理器
+  #
+
+CPU（Central Processing Unit，中央处理单元）是计算机的核心部件之一，负责执行计算机程序中的指令。它是计算机中的“大脑”，进行数据处理、运算、逻辑判断、控制指令执行等重要任务。简而言之，CPU负责将软件程序中的指令转化为计算机能够理解并执行的操作。
+CPU 的主要工作包括：
+
+指令执行：CPU 根据程序中给定的指令（比如加法、减法、逻辑判断等）进行操作。
+数据处理：CPU 处理数据，进行算术运算、逻辑运算、数据传输等。
+控制功能：CPU 控制计算机的各个部件，协调不同硬件的工作，以确保程序顺利运行。
+
+
+
+  1.1.2 Register 寄存器
+  #
+
+寄存器（Register）是计算机中的一种 高速存储器，它位于 CPU 内部，专门用于存储和快速访问正在处理的数据和指令。与内存（RAM）相比，寄存器的访问速度非常快，因为它直接集成在 CPU 内部，但它的存储容量较小。寄存器在计算机的执行过程中扮演着至关重要的角色，尤其是在指令的解码、执行和数据操作方面。">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="http://localhost:1313/posts/practice3/">
+  <meta property="og:site_name" content="Operating System">
+  <meta property="og:title" content="Operating System TA">
+  <meta property="og:description" content="Operating System TA # 此文档是为了让各位更好理解UWE-Neusoft操作系统课程的内容，其中经过阅读产出的解释会放上原文链接，此文档使用双语，便于各位复习考试。 # 目录 # Basic Concept
+Related Concepts CPU Register RAM Latency Numbers Operating System Definition Kernel Abstraction Process &amp; Threads
+Process Processes and Execution of Program PCB Process state&amp;Process Blocking &amp;Context Switch Threads Concurrency
+System Calls
+Chapter 1 Basic Concept # 1.1 Related Concepts # 1.1.1 CPU 中央处理器 # CPU（Central Processing Unit，中央处理单元）是计算机的核心部件之一，负责执行计算机程序中的指令。它是计算机中的“大脑”，进行数据处理、运算、逻辑判断、控制指令执行等重要任务。简而言之，CPU负责将软件程序中的指令转化为计算机能够理解并执行的操作。
+CPU 的主要工作包括：
+指令执行：CPU 根据程序中给定的指令（比如加法、减法、逻辑判断等）进行操作。 数据处理：CPU 处理数据，进行算术运算、逻辑运算、数据传输等。 控制功能：CPU 控制计算机的各个部件，协调不同硬件的工作，以确保程序顺利运行。 1.1.2 Register 寄存器 # 寄存器（Register）是计算机中的一种 高速存储器，它位于 CPU 内部，专门用于存储和快速访问正在处理的数据和指令。与内存（RAM）相比，寄存器的访问速度非常快，因为它直接集成在 CPU 内部，但它的存储容量较小。寄存器在计算机的执行过程中扮演着至关重要的角色，尤其是在指令的解码、执行和数据操作方面。">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2024-11-14T01:05:42+08:00">
+    <meta property="article:modified_time" content="2024-11-20T08:48:59+08:00">
+<title>Operating System TA | Operating System</title>
+<link rel="icon" href="/favicon.png" >
+<link rel="manifest" href="/manifest.json">
+<link rel="canonical" href="http://localhost:1313/posts/practice3/">
+<link rel="stylesheet" href="/book.min.6c8b9d2a1fc95075ed7da46ca81060b39add8fff6741ac51259f768929281e2c.css" integrity="sha256-bIudKh/JUHXtfaRsqBBgs5rdj/9nQaxRJZ92iSkoHiw=" crossorigin="anonymous">
+  <script defer src="/fuse.min.js"></script>
+  <script defer src="/en.search.min.7bc1545f127a97ff629c3a1b1d2141ece13d233e2f09b5e9477d098364046f6b.js" integrity="sha256-e8FUXxJ6l/9inDobHSFB7OE9Iz4vCbXpR30Jg2QEb2s=" crossorigin="anonymous"></script>
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+  
+</head>
+<body dir="ltr">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      <div class="book-menu-content">
+        
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/"><span>Operating System</span>
+  </a>
+</h2>
+
+
+<div class="book-search hidden">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+<script>document.querySelector(".book-search").classList.remove("hidden")</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/my-first-post/" class="">My First Post</a>
+  
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/docs/practice3/" class="">Operating System TA</a>
+  
+
+        </li>
+      
+    
+  </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+ 
+      </div>
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <h3>Operating System TA</h3>
+
+  <label for="toc-control">
+    
+    <img src="/svg/toc.svg" class="book-icon" alt="Table of Contents" />
+    
+  </label>
+</div>
+
+
+  
+  <aside class="hidden clearfix">
+    
+  
+<nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#此文档是为了让各位更好理解uwe-neusoft操作系统课程的内容其中经过阅读产出的解释会放上原文链接此文档使用双语便于各位复习考试">此文档是为了让各位更好理解UWE-Neusoft操作系统课程的内容，其中经过阅读产出的解释会放上原文链接，此文档使用双语，便于各位复习考试。</a></li>
+      </ul>
+    </li>
+    <li><a href="#目录">目录</a></li>
+    <li><a href="#chapter-1-basic-concept">Chapter 1 Basic Concept</a>
+      <ul>
+        <li><a href="#11-related-concepts">1.1 Related Concepts</a></li>
+        <li><a href="#什么是内存">什么是内存？</a></li>
+        <li><a href="#12-operating-system-definition">1.2 Operating System Definition</a></li>
+        <li><a href="#13-kernel-abstraction">1.3 Kernel Abstraction</a></li>
+      </ul>
+    </li>
+    <li><a href="#chapter-2-process--threads">Chapter 2 Process &amp; Threads</a>
+      <ul>
+        <li><a href="#21-process">2.1 Process</a></li>
+        <li><a href="#22-threads">2.2 Threads</a></li>
+        <li><a href="#what-is-process-management">What is Process Management</a></li>
+        <li><a href="#heading"></a></li>
+      </ul>
+    </li>
+    <li><a href="#chapter-3-concurrency">Chapter 3 Concurrency</a></li>
+    <li><a href="#chapter-4-system-calls">Chapter 4 System Calls</a></li>
+  </ul>
+</nav>
+
+
+
+  </aside>
+  
+ 
+      </header>
+
+      
+      
+<article class="markdown book-post">
+  <h2>
+    Operating System TA
+  </h2>
+  
+  <div class="flex align-center text-small book-post-date">
+    <img src="/svg/calendar.svg" class="book-icon " alt="" />
+    <span>November 14, 2024</span>
+  </div>
+
+
+
+  
+
+  
+
+
+  <div class="book-post-content"><h1 id="operating-system-ta">
+  Operating System TA
+  <a class="anchor" href="#operating-system-ta">#</a>
+</h1>
+<h3 id="此文档是为了让各位更好理解uwe-neusoft操作系统课程的内容其中经过阅读产出的解释会放上原文链接此文档使用双语便于各位复习考试">
+  此文档是为了让各位更好理解UWE-Neusoft操作系统课程的内容，其中经过阅读产出的解释会放上原文链接，此文档使用双语，便于各位复习考试。
+  <a class="anchor" href="#%e6%ad%a4%e6%96%87%e6%a1%a3%e6%98%af%e4%b8%ba%e4%ba%86%e8%ae%a9%e5%90%84%e4%bd%8d%e6%9b%b4%e5%a5%bd%e7%90%86%e8%a7%a3uwe-neusoft%e6%93%8d%e4%bd%9c%e7%b3%bb%e7%bb%9f%e8%af%be%e7%a8%8b%e7%9a%84%e5%86%85%e5%ae%b9%e5%85%b6%e4%b8%ad%e7%bb%8f%e8%bf%87%e9%98%85%e8%af%bb%e4%ba%a7%e5%87%ba%e7%9a%84%e8%a7%a3%e9%87%8a%e4%bc%9a%e6%94%be%e4%b8%8a%e5%8e%9f%e6%96%87%e9%93%be%e6%8e%a5%e6%ad%a4%e6%96%87%e6%a1%a3%e4%bd%bf%e7%94%a8%e5%8f%8c%e8%af%ad%e4%be%bf%e4%ba%8e%e5%90%84%e4%bd%8d%e5%a4%8d%e4%b9%a0%e8%80%83%e8%af%95">#</a>
+</h3>
+<h2 id="目录">
+  目录
+  <a class="anchor" href="#%e7%9b%ae%e5%bd%95">#</a>
+</h2>
+<ul>
+<li>
+<p><a href="#chapter-1-basic-concept">Basic Concept</a></p>
+<ul>
+<li><a href="#11-related-concepts">Related Concepts</a>
+<ul>
+<li><a href="#111-cpu-%e4%b8%ad%e5%a4%ae%e5%a4%84%e7%90%86%e5%99%a8">CPU</a></li>
+<li><a href="#112-register-%e5%af%84%e5%ad%98%e5%99%a8">Register</a></li>
+<li><a href="#113-ram-%e5%86%85%e5%ad%98">RAM</a></li>
+<li><a href="#114-latency-numbers-every-programmers-should-know">Latency Numbers</a></li>
+</ul>
+</li>
+<li><a href="#12-operating-system-definition">Operating System Definition</a></li>
+<li><a href="#13-kernel-abstraction">Kernel Abstraction</a></li>
+</ul>
+</li>
+<li>
+<p><a href="#chapter-2-process--threads">Process &amp; Threads</a></p>
+<ul>
+<li><a href="#21-process">Process</a>
+<ul>
+<li><a href="#211-processes-and-execution-of-program">Processes and Execution of Program</a></li>
+<li><a href="#212-pcb">PCB</a></li>
+<li><a href="#213-process-state--process-blocking--context-switching">Process state&amp;Process Blocking &amp;Context Switch</a></li>
+</ul>
+</li>
+<li><a href="#22-threads">Threads</a></li>
+</ul>
+</li>
+<li>
+<p><a href="#chapter-3-concurrency">Concurrency</a></p>
+</li>
+<li>
+<p><a href="#chapter-4-system-calls">System Calls</a></p>
+</li>
+</ul>
+<h2 id="chapter-1-basic-concept">
+  Chapter 1 Basic Concept
+  <a class="anchor" href="#chapter-1-basic-concept">#</a>
+</h2>
+<h3 id="11-related-concepts">
+  1.1 Related Concepts
+  <a class="anchor" href="#11-related-concepts">#</a>
+</h3>
+<h4 id="111-cpu-中央处理器">
+  <strong>1.1.1 CPU 中央处理器</strong>
+  <a class="anchor" href="#111-cpu-%e4%b8%ad%e5%a4%ae%e5%a4%84%e7%90%86%e5%99%a8">#</a>
+</h4>
+<p>CPU（Central Processing Unit，中央处理单元）是计算机的核心部件之一，负责执行计算机程序中的指令。它是计算机中的“大脑”，进行数据处理、运算、逻辑判断、控制指令执行等重要任务。简而言之，CPU负责将软件程序中的指令转化为计算机能够理解并执行的操作。</p>
+<p>CPU 的主要工作包括：</p>
+<ul>
+<li>指令执行：CPU 根据程序中给定的指令（比如加法、减法、逻辑判断等）进行操作。</li>
+<li>数据处理：CPU 处理数据，进行算术运算、逻辑运算、数据传输等。</li>
+<li>控制功能：CPU 控制计算机的各个部件，协调不同硬件的工作，以确保程序顺利运行。</li>
+</ul>
+<hr>
+<h4 id="112-register-寄存器">
+  <strong>1.1.2 Register 寄存器</strong>
+  <a class="anchor" href="#112-register-%e5%af%84%e5%ad%98%e5%99%a8">#</a>
+</h4>
+<p><strong>寄存器</strong>（Register）是计算机中的一种 <strong>高速存储器</strong>，它位于 CPU 内部，专门用于存储和快速访问正在处理的数据和指令。与内存（RAM）相比，寄存器的访问速度非常快，因为它直接集成在 CPU 内部，但它的存储容量较小。寄存器在计算机的执行过程中扮演着至关重要的角色，尤其是在指令的解码、执行和数据操作方面。</p>
+<p>寄存器的类型和作用</p>
+<p>根据功能和使用方式，寄存器可以分为不同的类型。</p>
+<h4 id="1-数据寄存器data-registers">
+  1. <strong>数据寄存器（Data Registers）</strong>
+  <a class="anchor" href="#1-%e6%95%b0%e6%8d%ae%e5%af%84%e5%ad%98%e5%99%a8data-registers">#</a>
+</h4>
+<ul>
+<li><strong>作用</strong>：用于存储在运算过程中需要处理的数据。</li>
+<li><strong>示例</strong>：在加法运算中，两个操作数可能会被加载到数据寄存器中，然后 CPU 对它们进行计算。</li>
+</ul>
+<h4 id="2-地址寄存器address-registers">
+  2. <strong>地址寄存器（Address Registers）</strong>
+  <a class="anchor" href="#2-%e5%9c%b0%e5%9d%80%e5%af%84%e5%ad%98%e5%99%a8address-registers">#</a>
+</h4>
+<ul>
+<li><strong>作用</strong>：存储内存地址，用于指示数据在内存中的位置。</li>
+<li><strong>示例</strong>：当程序需要从内存中读取数据时，地址寄存器保存着数据所在的内存地址，CPU 使用该地址从内存中获取数据。</li>
+</ul>
+<h4 id="3-指令寄存器instruction-register-ir">
+  3. <strong>指令寄存器（Instruction Register, IR）</strong>
+  <a class="anchor" href="#3-%e6%8c%87%e4%bb%a4%e5%af%84%e5%ad%98%e5%99%a8instruction-register-ir">#</a>
+</h4>
+<ul>
+<li><strong>作用</strong>：存储当前正在执行的指令。</li>
+<li><strong>示例</strong>：CPU 在执行程序时，会将程序中的指令加载到指令寄存器中进行解码，然后执行。</li>
+</ul>
+<h4 id="4-程序计数器program-counter-pc">
+  4. <strong>程序计数器（Program Counter, PC）</strong>
+  <a class="anchor" href="#4-%e7%a8%8b%e5%ba%8f%e8%ae%a1%e6%95%b0%e5%99%a8program-counter-pc">#</a>
+</h4>
+<ul>
+<li><strong>作用</strong>：存储下一条将要执行的指令的地址。</li>
+<li><strong>示例</strong>：当 CPU 执行完当前指令后，程序计数器会自动更新，指向下一条指令的地址。</li>
+</ul>
+<h4 id="5-状态寄存器status-register">
+  5. <strong>状态寄存器（Status Register）</strong>
+  <a class="anchor" href="#5-%e7%8a%b6%e6%80%81%e5%af%84%e5%ad%98%e5%99%a8status-register">#</a>
+</h4>
+<ul>
+<li><strong>作用</strong>：存储 CPU 的状态信息，包括算术运算的结果（如零标志、进位标志等）。</li>
+<li><strong>示例</strong>：如果执行加法操作的结果为零，状态寄存器中的 <strong>零标志</strong> 会被设置为 1，表示运算结果为零。</li>
+</ul>
+<h4 id="6-通用寄存器general-purpose-registers-gpr">
+  6. <strong>通用寄存器（General Purpose Registers, GPR）</strong>
+  <a class="anchor" href="#6-%e9%80%9a%e7%94%a8%e5%af%84%e5%ad%98%e5%99%a8general-purpose-registers-gpr">#</a>
+</h4>
+<ul>
+<li><strong>作用</strong>：供 CPU 用于存储临时数据或计算结果，通常用于数据处理。</li>
+<li><strong>示例</strong>：例如在汇编语言中，可以使用通用寄存器保存操作数或者暂时存储中间计算结果。</li>
+</ul>
+<h4 id="7-浮点寄存器floating-point-registers">
+  7. <strong>浮点寄存器（Floating Point Registers）</strong>
+  <a class="anchor" href="#7-%e6%b5%ae%e7%82%b9%e5%af%84%e5%ad%98%e5%99%a8floating-point-registers">#</a>
+</h4>
+<ul>
+<li><strong>作用</strong>：专门用于处理浮点数（即带有小数点的数字）的计算。</li>
+<li><strong>示例</strong>：在执行浮点运算时，浮点寄存器存储浮点数的值。</li>
+</ul>
+<p><strong>寄存器在 CPU 中的作用</strong></p>
+<p>寄存器是 CPU 内部最关键的组成部分之一，它们直接影响计算机的运算效率和处理速度。以下是寄存器在 CPU 中的主要作用：</p>
+<ol>
+<li>
+<p><strong>高速存储</strong>：</p>
+<ul>
+<li>寄存器是 CPU 内部最快的存储器，通常比缓存（Cache）和主存（RAM）更快。因为它们是 CPU 的一部分，所以可以在指令执行过程中实时访问。</li>
+</ul>
+</li>
+<li>
+<p><strong>存储操作数和中间结果</strong>：</p>
+<ul>
+<li>在 CPU 执行计算时，寄存器用于存储操作数和计算过程中的中间结果。例如，进行加法运算时，两个操作数和运算结果都可能保存在寄存器中。</li>
+</ul>
+</li>
+<li>
+<p><strong>提高运算速度</strong>：</p>
+<ul>
+<li>寄存器的高速存取特性显著提高了 CPU 的运算速度。每次计算指令时，数据如果保存在寄存器中，CPU 能够迅速地获取并进行计算，而不需要从较慢的内存中读取数据。</li>
+</ul>
+</li>
+<li>
+<p><strong>指令调度与执行</strong>：</p>
+<ul>
+<li><strong>程序计数器</strong>（PC）和 <strong>指令寄存器</strong>（IR）是 CPU 执行程序指令的核心部件。程序计数器指向下一条指令的地址，而指令寄存器则保存当前执行的指令。指令的取出、解码、执行是通过寄存器高效完成的。</li>
+</ul>
+</li>
+<li>
+<p><strong>数据传递</strong>：</p>
+<ul>
+<li>寄存器负责 CPU 内部和内存、外设之间的数据传递。通过寄存器，CPU 可以与内存中的数据进行交换，也可以与外设（如硬盘、显示器等）进行数据交换。</li>
+</ul>
+</li>
+</ol>
+<p><strong>寄存器的特性</strong></p>
+<ol>
+<li>
+<p><strong>速度快</strong>：</p>
+<ul>
+<li>寄存器是 CPU 中的最重要部件，存取速度极快，通常是硬件直接支持的。</li>
+</ul>
+</li>
+<li>
+<p><strong>容量小</strong>：</p>
+<ul>
+<li>由于寄存器存储的是临时数据，它们的容量比内存要小很多。一个现代 CPU 通常只有几十到几百个寄存器，而内存的容量则是几 GB 或更多。</li>
+</ul>
+</li>
+<li>
+<p><strong>专用性</strong>：</p>
+<ul>
+<li>大多数寄存器有专门的用途，例如程序计数器（PC）和指令寄存器（IR）有固定的用途，不能随意改动；而通用寄存器则可以被程序灵活使用。</li>
+</ul>
+</li>
+<li>
+<p><strong>易于访问</strong>：</p>
+<ul>
+<li>由于寄存器直接位于 CPU 内部，CPU 可以非常迅速地访问和操作它们。</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h4 id="113-ram-内存">
+  <strong>1.1.3 RAM 内存</strong>
+  <a class="anchor" href="#113-ram-%e5%86%85%e5%ad%98">#</a>
+</h4>
+<h3 id="什么是内存">
+  什么是内存？
+  <a class="anchor" href="#%e4%bb%80%e4%b9%88%e6%98%af%e5%86%85%e5%ad%98">#</a>
+</h3>
+<p><strong>内存</strong>（Memory）是计算机中用于存储数据和指令的硬件设备，它为计算机提供临时存储空间，使得处理器（CPU）能够快速访问正在使用的数据和程序指令。内存是计算机运行时必不可少的组成部分，它的主要作用是提供程序和数据的存取，使得 CPU 能够在运行程序时不断地读取和修改数据。</p>
+<p>在计算机中，内存有不同的类型，根据速度、容量、用途等因素进行区分。最常见的内存类型包括 <strong>RAM（随机存取存储器）</strong> 和 <strong>ROM（只读存储器）</strong>，以及一些特殊的高速缓存（如 <strong>Cache</strong>）和虚拟内存。</p>
+<h4 id="内存的主要分类">
+  内存的主要分类
+  <a class="anchor" href="#%e5%86%85%e5%ad%98%e7%9a%84%e4%b8%bb%e8%a6%81%e5%88%86%e7%b1%bb">#</a>
+</h4>
+<h4 id="1-ram随机存取存储器">
+  1. <strong>RAM（随机存取存储器）</strong>
+  <a class="anchor" href="#1-ram%e9%9a%8f%e6%9c%ba%e5%ad%98%e5%8f%96%e5%ad%98%e5%82%a8%e5%99%a8">#</a>
+</h4>
+<ul>
+<li><strong>作用</strong>：RAM 是计算机的主内存，主要用于存储正在运行的程序和数据。RAM 可以随时读写，因此它被称为“随机存取”的内存。</li>
+<li><strong>特点</strong>：
+<ul>
+<li><strong>易失性</strong>：RAM 中的数据在计算机断电后会丢失，所以它被称为易失性内存。计算机重启后，内存中的数据会消失，操作系统和程序需要重新加载到内存中。</li>
+<li><strong>读写速度快</strong>：RAM 的访问速度相对较快，远远高于硬盘或固态硬盘（SSD）。</li>
+</ul>
+</li>
+<li><strong>类型</strong>：
+<ul>
+<li><strong>动态 RAM（DRAM）</strong>：常见的 RAM 类型，具有较大的存储容量，但需要定期刷新以保持数据。</li>
+<li><strong>静态 RAM（SRAM）</strong>：速度更快，但容量较小，通常用于 CPU 缓存（L1、L2、L3 缓存）中。</li>
+</ul>
+</li>
+</ul>
+<h4 id="2-rom只读存储器">
+  2. <strong>ROM（只读存储器）</strong>
+  <a class="anchor" href="#2-rom%e5%8f%aa%e8%af%bb%e5%ad%98%e5%82%a8%e5%99%a8">#</a>
+</h4>
+<ul>
+<li><strong>作用</strong>：ROM 是一种非易失性内存，存储的是计算机开机时需要的固化指令或数据，如 BIOS（基本输入输出系统）或固件。</li>
+<li><strong>特点</strong>：
+<ul>
+<li><strong>非易失性</strong>：ROM 中存储的数据即使断电也不会丢失。</li>
+<li><strong>只能读取</strong>：传统的 ROM 只能读取数据，不能像 RAM 那样随意写入。现代 ROM 如 <strong>EPROM</strong> 和 <strong>EEPROM</strong> 可以进行编程和擦除，但写入次数有限。</li>
+</ul>
+</li>
+</ul>
+<h4 id="3-缓存cache">
+  3. <strong>缓存（Cache）</strong>
+  <a class="anchor" href="#3-%e7%bc%93%e5%ad%98cache">#</a>
+</h4>
+<ul>
+<li><strong>作用</strong>：缓存是位于 CPU 和主内存之间的一种高速存储器，旨在提高 CPU 访问内存的速度。缓存存储着 CPU 频繁访问的数据或指令，避免了 CPU 每次都从较慢的 RAM 中获取数据。</li>
+<li><strong>特点</strong>：
+<ul>
+<li><strong>极高的访问速度</strong>：由于缓存速度远高于内存，它可以大大减少 CPU 等待内存访问的时间。</li>
+<li><strong>小容量</strong>：缓存的存储容量相较于 RAM 和硬盘非常小，但它能够极大地提高计算机的性能。</li>
+<li><strong>多级缓存</strong>：现代 CPU 通常配有多级缓存（L1、L2、L3 缓存），不同级别的缓存具有不同的容量和访问速度。</li>
+</ul>
+</li>
+</ul>
+<h4 id="4-虚拟内存">
+  4. <strong>虚拟内存</strong>
+  <a class="anchor" href="#4-%e8%99%9a%e6%8b%9f%e5%86%85%e5%ad%98">#</a>
+</h4>
+<ul>
+<li><strong>作用</strong>：虚拟内存是计算机操作系统管理内存的一种方式，它使得计算机看起来拥有比实际物理内存更多的可用内存。虚拟内存通过将不常用的数据暂时存储在硬盘上来扩展内存空间。</li>
+<li><strong>特点</strong>：
+<ul>
+<li><strong>硬盘与内存交换</strong>：当物理内存不够用时，操作系统会将一些数据从 RAM 移动到硬盘的交换文件（Swap）或页面文件中，这个过程叫做 <strong>分页</strong>（paging）。</li>
+<li><strong>提供更多空间</strong>：虚拟内存允许程序使用比物理内存更多的空间，但由于硬盘速度远慢于内存，这会导致性能下降。</li>
+</ul>
+</li>
+</ul>
+<h4 id="内存的工作原理">
+  内存的工作原理
+  <a class="anchor" href="#%e5%86%85%e5%ad%98%e7%9a%84%e5%b7%a5%e4%bd%9c%e5%8e%9f%e7%90%86">#</a>
+</h4>
+<ol>
+<li>
+<p><strong>程序加载</strong>：</p>
+<ul>
+<li>当你启动一个程序时，操作系统会将程序的代码和所需的数据从硬盘加载到内存中。操作系统会为每个程序分配一定的内存空间，使得程序可以在内存中运行。</li>
+</ul>
+</li>
+<li>
+<p><strong>数据存取</strong>：</p>
+<ul>
+<li>CPU 通过访问内存中的数据来执行指令。内存是一个 <strong>地址空间</strong>，每个数据和指令都有一个唯一的地址，CPU 根据这些地址来读取或写入数据。</li>
+<li>CPU 可以通过 <strong>内存总线</strong> 与内存进行通信，读取数据、存储数据或修改数据。</li>
+</ul>
+</li>
+<li>
+<p><strong>缓存和内存层次结构</strong>：</p>
+<ul>
+<li>由于 CPU 访问内存的速度远慢于寄存器和缓存，现代计算机通常采用层次化的内存结构，其中包括多个缓存（L1、L2、L3）以及主内存（RAM）。CPU 会首先尝试从速度最快的 L1 缓存中获取数据，如果没有找到，则依次从 L2、L3 缓存，最终从主内存中获取。</li>
+</ul>
+</li>
+<li>
+<p><strong>虚拟内存的使用</strong>：</p>
+<ul>
+<li>当程序需要更多内存时，操作系统会使用虚拟内存技术，将部分内存内容保存到硬盘上。这种做法能够扩展可用内存，但也会因硬盘访问速度慢而导致性能下降。</li>
+</ul>
+</li>
+</ol>
+<h4 id="内存与其他硬件的比较">
+  内存与其他硬件的比较
+  <a class="anchor" href="#%e5%86%85%e5%ad%98%e4%b8%8e%e5%85%b6%e4%bb%96%e7%a1%ac%e4%bb%b6%e7%9a%84%e6%af%94%e8%be%83">#</a>
+</h4>
+<table>
+  <thead>
+      <tr>
+          <th><strong>硬件</strong></th>
+          <th><strong>速度</strong></th>
+          <th><strong>容量</strong></th>
+          <th><strong>易失性</strong></th>
+          <th><strong>用途</strong></th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>寄存器</strong></td>
+          <td>极快</td>
+          <td>极小</td>
+          <td>易失性</td>
+          <td>存储 CPU 当前处理的数据和指令</td>
+      </tr>
+      <tr>
+          <td><strong>缓存（Cache）</strong></td>
+          <td>很快</td>
+          <td>小</td>
+          <td>易失性</td>
+          <td>存储 CPU 常用的数据和指令，减少访问内存的延迟</td>
+      </tr>
+      <tr>
+          <td><strong>RAM</strong></td>
+          <td>快</td>
+          <td>中</td>
+          <td>易失性</td>
+          <td>存储正在运行的程序和数据</td>
+      </tr>
+      <tr>
+          <td><strong>ROM</strong></td>
+          <td>慢</td>
+          <td>小</td>
+          <td>非易失性</td>
+          <td>存储固化的程序和数据（如 BIOS）</td>
+      </tr>
+      <tr>
+          <td><strong>硬盘（HDD/SSD）</strong></td>
+          <td>慢</td>
+          <td>大</td>
+          <td>非易失性</td>
+          <td>存储长期数据，如操作系统、程序和文件</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h4 id="114-latency-numbers-every-programmers-should-know">
+  <strong>1.1.4 Latency Numbers Every Programmers Should Know</strong>
+  <a class="anchor" href="#114-latency-numbers-every-programmers-should-know">#</a>
+</h4>
+<p>在后续的课程开始之前，阅读此章节是有意义的，能让各位更直观的了解到不同的硬件的访问延迟速度的不同之处。
+<strong>&ldquo;Latency Numbers Every Programmer Should Know&rdquo;</strong> 是一篇由 <strong>John L. Hennessy</strong> 和 <strong>David A. Patterson</strong>（计算机体系结构领域的两位权威人物）提出的文章，旨在帮助程序员了解不同硬件操作的延迟（latency）数字，并通过这些数字更好地优化程序的性能。文章中的数据主要描述了现代计算机系统中，常见硬件组件（如 CPU 寄存器、缓存、内存、硬盘等）的访问延迟。</p>
+<h4 id="典型延迟数据">
+  典型延迟数据
+  <a class="anchor" href="#%e5%85%b8%e5%9e%8b%e5%bb%b6%e8%bf%9f%e6%95%b0%e6%8d%ae">#</a>
+</h4>
+<p>这些数字是针对典型硬件平台的延迟时间，按不同层级和硬件分类：</p>
+<ol>
+<li>
+<p><strong>CPU 寄存器</strong>：</p>
+<ul>
+<li>访问延迟：<strong>1ns</strong>（极快）</li>
+</ul>
+</li>
+<li>
+<p><strong>L1 缓存</strong>（Level 1 Cache）：</p>
+<ul>
+<li>访问延迟：<strong>1ns – 4ns</strong></li>
+</ul>
+</li>
+<li>
+<p><strong>L2 缓存</strong>（Level 2 Cache）：</p>
+<ul>
+<li>访问延迟：<strong>3ns – 20ns</strong></li>
+</ul>
+</li>
+<li>
+<p><strong>L3 缓存</strong>（Level 3 Cache）：</p>
+<ul>
+<li>访问延迟：<strong>10ns – 40ns</strong></li>
+</ul>
+</li>
+<li>
+<p><strong>主内存（RAM）</strong>：</p>
+<ul>
+<li>访问延迟：<strong>50ns – 100ns</strong></li>
+</ul>
+</li>
+<li>
+<p><strong>固态硬盘（SSD）</strong>：</p>
+<ul>
+<li>访问延迟：<strong>100µs</strong>（微秒级别）</li>
+</ul>
+</li>
+<li>
+<p><strong>机械硬盘（HDD）</strong>：</p>
+<ul>
+<li>访问延迟：<strong>5ms – 10ms</strong>（毫秒级别）</li>
+</ul>
+</li>
+<li>
+<p><strong>网络存储（如 NAS 或云存储）</strong>：</p>
+<ul>
+<li>访问延迟：<strong>10ms – 100ms</strong></li>
+</ul>
+</li>
+</ol>
+<p>这些数据帮助开发人员理解，在不同硬件和存储层次中，数据访问的速度差异是多么显著，尤其是在考虑性能优化时。程序员可以通过了解这些延迟数字来识别性能瓶颈，比如频繁地访问主内存、硬盘或者网络存储会导致程序的性能大幅下降。</p>
+<h4 id="数据可信性">
+  数据可信性
+  <a class="anchor" href="#%e6%95%b0%e6%8d%ae%e5%8f%af%e4%bf%a1%e6%80%a7">#</a>
+</h4>
+<p>这些数字来自实际的硬件测试和研究，因此它们在一般情况下是具有很高的可信度的。不过，这些延迟数字是 <strong>典型值</strong> 或 <strong>平均值</strong>，并且会受到不同硬件平台、处理器架构、存储设备类型等因素的影响。也就是说，不同的计算机系统可能会有所不同，特别是在新的硬件和存储技术（如 NVMe SSD、Optane 存储）出现时，延迟时间可能会有所变化。</p>
+<p>另外，<strong>操作系统</strong> 和 <strong>硬件配置</strong>（如内存大小、缓存层次、硬盘类型、网络带宽等）都会对实际性能产生影响，因此这些延迟数字可以作为参考，但并不意味着每种硬件都严格符合这些标准。</p>
+<h4 id="为什么这些数据重要">
+  为什么这些数据重要？
+  <a class="anchor" href="#%e4%b8%ba%e4%bb%80%e4%b9%88%e8%bf%99%e4%ba%9b%e6%95%b0%e6%8d%ae%e9%87%8d%e8%a6%81">#</a>
+</h4>
+<ol>
+<li>
+<p><strong>性能优化</strong>：了解这些延迟数字能够帮助开发人员在程序中进行优化，避免不必要的性能瓶颈。例如，频繁访问主内存会比访问 CPU 缓存慢得多，因此程序应尽量减少内存访问的频率，并尝试使用缓存。</p>
+</li>
+<li>
+<p><strong>设计高效算法</strong>：程序员可以通过了解存储层次的延迟，选择合适的数据结构和算法，最大限度地提高程序的运行效率。例如，当设计缓存策略时，知道 L1 和 L2 缓存的访问速度差异可以帮助设计高效的缓存替换算法。</p>
+</li>
+<li>
+<p><strong>硬件依赖性</strong>：这些延迟数据有助于程序员理解程序在不同硬件平台上运行的行为，尤其是在进行性能调优时。这些数字帮助程序员识别哪些硬件是性能瓶颈，并做出相应的优化。</p>
+</li>
+<li>
+<p><strong>虚拟内存和磁盘I/O</strong>：在虚拟内存管理和文件系统设计中，理解硬盘和主内存之间的延迟差异至关重要。通过了解硬盘延迟是如何影响性能的，程序员可以更好地设计内存分页、缓存和数据交换机制。</p>
+</li>
+</ol>
+<p>推荐大家使用此链接的图来直观观察1990-2020年访问速度的差异： <a href="https://colin-scott.github.io/personal_website/research/interactive_latency.html">https://colin-scott.github.io/personal_website/research/interactive_latency.html</a></p>
+<hr>
+<h3 id="12-operating-system-definition">
+  1.2 Operating System Definition
+  <a class="anchor" href="#12-operating-system-definition">#</a>
+</h3>
+<blockquote>
+<p>An Operating System (OS) is software that acts as an interface between the computer hardware and the user or application software. It manages hardware resources and provides essential services for the execution of programs. (From <strong>lecture 10</strong>)</p>
+</blockquote>
+<p>我们如何来理解上面这段话？</p>
+<p>当我们想要更全面理解一个定义时，一个通常比较好的方法是查看其他书籍和行业先驱对个概念的定义和理解，找到不同定义的相同点，进而形成一个准确又直观的感受框架，再将我们学习到和接触到的知识放入框架中一步一步完善。我们尝试从另外两本比较优秀的教材中理解这一定义。</p>
+<p><strong>定义1</strong></p>
+<blockquote>
+<p>The job of an operating system is to share a computer among multiple programs and to provide a
+more useful set of services than the hardware alone supports. An operating system manages and
+abstracts the low-level hardware, so that, for example, a word processor need not concern itself
+with which type of disk hardware is being used. An operating system shares the hardware among
+multiple programs so that they run (or appear to run) at the same time. Finally, operating systems
+provide controlled ways for programs to interact, so that they can share data or work together.</p>
+</blockquote>
+<p><strong>中文翻译版：</strong></p>
+<blockquote>
+<p>操作系统的任务是将计算机资源在多个程序之间进行共享，并提供比硬件本身支持的功能更为丰富的服务。操作系统管理和抽象了底层硬件，例如，使得文字处理器无需关心正在使用哪种类型的磁盘硬件。操作系统将硬件资源在多个程序之间共享，使它们可以同时运行（或看起来像同时运行）。最后，操作系统提供了受控的方式供程序之间进行交互，使它们能够共享数据或协同工作。</p>
+</blockquote>
+<p>(<em>xv6, a simple, Unix-like teaching operating system, Russ Cox Frans Kaashoek Robert Morris</em>, September 6, 2021)</p>
+<p><strong>定义2：</strong></p>
+<blockquote>
+<p>An operating system (OS) is the layer of software that manages a computer’s resources for
+its users and their applications. Operating systems run in a wide range of computer
+systems. They may be invisible to the end user, controlling embedded devices such as
+toasters, gaming systems, and the many computers inside modern automobiles and
+airplanes. They are also essential to more general-purpose systems such as smartphones,
+desktop computers, and servers.</p>
+</blockquote>
+<p><strong>中文翻译版</strong></p>
+<blockquote>
+<p>操作系统（OS）是管理计算机资源的软体层，负责为用户及其应用程序提供服务。操作系统运行于各种计算机系统中。它们可能对最终用户是不可见的，控制着嵌入式设备，如烤面包机、游戏系统以及现代汽车和飞机中的许多计算机。它们对更通用的系统，如智能手机、桌面计算机和服务器，也是至关重要的。</p>
+</blockquote>
+<p>（<em>Operating Systems Principles &amp; Practice， Thomas Anderson, Mike Dahlin</em>）</p>
+<p>从以上三种定义我们可以看出操作系统的核心概念：</p>
+<ul>
+<li>操作系统是管理计算机硬件资源(hardware resources)的<strong>软件</strong>。</li>
+<li>作为硬件和<strong>用户</strong>的中介角色，为用户提供对硬件直接操作的直观服务。</li>
+<li>作为硬件和<strong>用户程序</strong>的中介角色，为用户提供对硬件间接操作的直观服务。</li>
+<li>提供<strong>可控制的程序交互</strong>，使得不同的程序可以共享数据和一起工作。</li>
+</ul>
+<p><img src="image-3.png" alt="general-purpose operating system" /></p>
+<p><strong>Figure 1.1 general-purpose operating system</strong>:  这张图可以从整体描述用户和计算机硬件之间的关系，一般而言，用户与软件应用（app)进行交互，而这些app运行在操作系统搭载的环境中，而操作系统作为一个中介来跟底层的硬件交互。
+我们看一下这张简单图示的扩展版
+<img src="image-4.png" alt="alt text" /> （<em><strong>Figure 1.3 Operating Systems Principles &amp; Practice， Thomas Anderson, Mike Dahlin</strong></em>)</p>
+<p>这张图更详细的描述了操作系统的功能，在最低层，硬件提供了处理器（Processors, Graphics Processor)、内存(Memory)以及一组用于存储数据(Disk)和与外界通信的设备(Network)。硬件还提供了一些基本操作，供操作系统用于故障隔离和同步(fault isolation and synchronization)。操作系统运行在计算机上作为最低层的软件。它包含一个用于管理各种硬件设备的设备专用层（device-specific layer），以及一组提供给应用程序的设备无关服务（device-independent services）。由于操作系统必须隔离恶意和有漏洞的应用程序，防止它们干扰其他应用程序或操作系统本身，因此操作系统的大部分运行在一个与应用程序代码分离的、受到保护的执行环境中。此外，操作系统的一部分也可以作为系统库运行，并链接到每个应用程序中。
+反过来，应用程序运行在由操作系统内核提供的执行上下文中。这个应用程序上下文不仅仅是硬件设备之上的一个简单抽象；它是一个虚拟环境，具有以下特点：</p>
+<ul>
+<li>更加受限：为了防止对系统的破坏。</li>
+<li>更加强大：以掩盖硬件的局限性。</li>
+<li>更有用：通过提供常用服务，使应用程序更易开发和运行。</li>
+</ul>
+<p>著名的 <em>Operating Systems Principles &amp; Practice</em> 将操作系统描述为三种角色裁判（Referee)、幻术师（Illusionist)、胶水（Glue）。为避免太多信息对各位的阅读造成麻烦，我只简要摘录这三种角色的功能：</p>
+<ol>
+<li><strong>裁判（Referee）</strong><br>
+操作系统管理在<strong>同一台物理机器</strong>上运行的<strong>不同应用程序</strong>之间共享的资源。例如，操作系统可以停止一个程序并启动另一个程序。操作系统将应用程序彼此隔离，因此，一个应用程序中的错误不会破坏在同一机器上运行的其他应用程序。操作系统还必须保护自身及其他应用程序免受恶意计算机病毒的攻击。由于应用程序共享物理资源，操作系统需要决定哪些应用程序可以获得哪些资源以及何时获取。
+我们可以尝试列举操作系统作为裁判的功能：</li>
+</ol>
+<ul>
+<li><strong>资源分配</strong>：
+  - 操作系统负责管理有限的硬件资源（如处理器、内存、网络带宽和磁盘空间），确保多个程序能合理共享资源。
+  - 通过分配资源，避免某个程序陷入死循环导致整个系统卡死。
+ </li>
+<li><strong>隔离（Fault Isolation）</strong>：
+  - 操作系统隔离不同应用程序，使得一个程序的错误不会影响其他程序或系统本身。
+例如
+<pre tabindex="0"><code>while(true){
+ ;
+}
+</code></pre>这种类型的代码如果在整个系统中运行，那么它会让整个系统崩溃，但是如果是隔离开的单个运行环境运行，那它就不会影响其他程序，也能强制停止。
+  - 防止恶意程序或漏洞危害其他应用程序或用户数据。</li>
+<li><strong>通信</strong>：
+  - 在隔离的基础上，操作系统允许应用程序间安全、受控地通信，例如协作完成复杂任务。
+  - 操作系统在设置边界时，也要支持必要的跨边界通信。</li>
+</ul>
+<ol start="2">
+<li><strong>幻术师（Illusionist）</strong><br>
+操作系统通过对物理硬件的抽象，简化了应用程序的设计。编写一个“Hello, world!”程序时，你不需要（也不想）考虑系统有多少物理内存，或者有多少其他程序可能在共享计算机的资源。相反，操作系统提供了一种<strong>近乎无限内存</strong>的幻觉，即使物理内存有限。同样，它们还提供了每个程序独占计算机处理器的幻觉，而实际情况显然不同！这种幻觉让你可以在不依赖系统物理内存大小或处理器数量的情况下编写应用程序。由于应用程序是基于更高层次的抽象编写的，操作系统可以在后台无形地改变分配给每个应用程序的资源量。
+我们可以尝试总结一下操作系统作为幻术师的职能：</li>
+</ol>
+<ul>
+<li><strong>虚拟资源</strong>：
+  - 操作系统虚拟化物理资源（如处理器、内存、磁盘等），提供例如“无限内存”或“专属处理器”的假象。
+  - 例如，操作系统将有限的物理内存抽象为几乎无限的虚拟内存。</li>
+<li><strong>错误屏蔽</strong>：
+  - 对无线网络丢包或磁盘设备的物理限制进行屏蔽，让程序员感知不到底层硬件问题。</li>
+<li><strong>虚拟机</strong>：
+  - 操作系统还可以虚拟化整个计算机，使得操作系统本身可以运行在另一个操作系统上（虚拟机）。
+  - 虚拟机提高了应用的可移植性，例如旧系统程序可以在新硬件上运行虚拟机实现兼容。
+通过这些“幻象”，操作系统为开发者提供了比底层硬件更方便和灵活的编程接口。</li>
+</ul>
+<ol start="3">
+<li><strong>胶水（Glue）</strong><br>
+操作系统提供了一组通用服务，以便应用程序之间可以方便地共享资源。因此，剪切和粘贴可以在整个系统中统一工作；一个应用程序写入的文件可以被另一个应用程序读取。许多操作系统还提供了通用的用户界面例程，使得应用程序可以具有相同的“外观和风格”。最重要的是，操作系统提供了一层将应用程序与硬件输入/输出（I/O）设备隔离的抽象层，因此应用程序的编写无需依赖于特定的键盘、鼠标或磁盘驱动器，而是可以独立于具体的硬件设备运行。
+我们可以尝试总结一下操作系统作为胶水的职能：</li>
+</ol>
+<ul>
+<li><strong>标准化服务</strong>：
+  - 操作系统提供标准接口（如文件操作、内存管理、网络通信），屏蔽底层硬件的复杂性。
+  - 例如，网络服务器可以专注于处理请求，而无需关心数据包的格式化。</li>
+<li><strong>促进共享</strong>：
+  - 通过标准化格式和管理方式，应用程序可以共享文件或数据（如文件系统的标准化、共享内存）。</li>
+<li><strong>设备抽象</strong>：
+  - 操作系统统一抽象了各种硬件设备（如网络接口、磁盘驱动、传感器等），让应用程序无需关心设备的具体实现。</li>
+<li><strong>用户界面库</strong>：
+  - 提供图形用户界面（GUI）组件，确保应用程序具有一致的外观和用户体验。</li>
+</ul>
+<hr>
+<p>而评价操作系统的好坏要依靠以下几种标准：
+<strong>可靠性和可用性(Reliability and Availability)</strong>、<strong>安全性(Security)</strong>、<strong>可移植性(Portability)</strong>、<strong>性能(Performance)</strong>、<strong>采纳情况（Adoption）</strong>。我们可以简单通过以下几个问题来让自己快速了解这些标准代表了什么。</p>
+<ul>
+<li>
+<p><strong>可靠性和可用性</strong>：操作系统能否按照你的需求工作？</p>
+</li>
+<li>
+<p><strong>安全性</strong>：操作系统是否容易被攻击者破坏？</p>
+</li>
+<li>
+<p><strong>可移植性</strong>：操作系统是否容易移植到新的硬件平台？</p>
+</li>
+<li>
+<p><strong>性能</strong>：用户界面的响应是否及时，还是操作系统带来了过多的开销？</p>
+</li>
+<li>
+<p><strong>采纳情况</strong>：有多少用户在使用这个操作系统？</p>
+</li>
+</ul>
+<p>不同的操作系统总是在以上几个评价标准中做<em>trade-off</em>。
+（此章节来自<em>Operating Systems Principles &amp; Practice</em>）</p>
+<p>各位可以使用上述的概念来更好地理解 Lecture 10 page 4的内容（这些机制是什么，在老师的script里面已经有提及，我主要是为了解释为什么有这些机制），也可以将此页PPT作为我们的outline来使用：
+<img src="image-5.png" alt="alt text" /></p>
+<h3 id="13-kernel-abstraction">
+  1.3 Kernel Abstraction
+  <a class="anchor" href="#13-kernel-abstraction">#</a>
+</h3>
+<p>操作系统最主要的机制就是保护系统的内部——防止一些错误操作的用户或者程序影响其他的程序或者操作系统本身。保护机制其实满足了我们之前的部分评价标准：
+<strong>可靠性(Reliability)</strong>
+保护机制可以防止一个程序中的错误导致其他程序或操作系统崩溃。在用户看来，系统崩溃似乎是操作系统的错，即使问题的根本原因可能是某个应用程序或用户的意外行为。因此，为了实现高系统可靠性，操作系统必须具有自我保护能力，能够在不论应用程序或用户行为如何的情况下正确运行。</p>
+<p><strong>安全性(Security)</strong>
+某些系统上的用户或应用程序可能并不完全可信，因此操作系统必须限制它们的操作范围。没有保护机制，恶意用户可能会秘密更改应用程序文件，甚至操作系统本身，而用户对此一无所知。例如，如果一个恶意应用程序能够直接写入磁盘，它可能会修改包含操作系统代码的文件；下次系统启动时，被修改的操作系统就会加载，可能会安装间谍软件并禁用病毒保护功能。为了确保安全性，操作系统必须防止不受信任的代码修改系统状态。</p>
+<p><strong>隐私(Privacy)</strong>
+在多用户系统中，每个用户只能访问她被允许的数据。如果没有操作系统提供的保护，任何用户或运行在系统上的应用程序都可以在数据拥有者不知情或未批准的情况下访问任何人的数据。例如，黑客经常利用流行应用程序（如游戏或屏幕保护程序）作为获取智能手机或笔记本电脑上存储的个人电子邮件、电话号码和信用卡数据的途径。为了保护隐私，操作系统必须防止不受信任的代码访问未经授权的数据。</p>
+<p><strong>公平资源分配（Fair Resource Allocation)</strong>
+保护机制对于实现有效的资源分配也至关重要。如果没有保护机制，应用程序可以随意占用任意数量的处理时间、内存或磁盘空间。在单用户系统中，错误的应用程序可能会阻止其他应用程序运行，或使它们运行得极其缓慢，以至于看起来似乎卡住了。在多用户系统中，一个用户可能会占用系统的所有资源。因此，为了效率和公平，操作系统必须能够限制分配给每个应用程序或用户的资源量。</p>
+<p><strong>Kernel的作用？</strong></p>
+<p>实现保护是操作系统内核（<strong>Kernel</strong>)的工作。内核是系统上运行的最低级别的软件，它拥有对所有机器硬件的完全访问权限。内核必须被信任，可以对硬件进行任何操作。而其他所有的软件——也就是运行在系统上的不受信任的软件——都运行在一个受限的环境中(也即除了内核之外所有的软件都是不受信任的软件），无法完全访问硬件的全部功能。</p>
+<p>应用程序本身通常也需要安全地执行不受信任的第三方代码。一个例子是网页浏览器执行嵌入的 JavaScript 来渲染网页。如果没有保护机制，包含病毒的脚本可以接管浏览器，让用户误以为他们是在直接与网页交互，但实际上他们的网页密码正在被转发给攻击者。</p>
+<p>这种设计模式——可扩展应用程序运行第三方脚本——在许多不同领域都存在。如果第三方开发者和用户可以定制应用程序，那么这些应用程序就会变得更强大并得到更广泛的使用，但这样做也带来了如何保护应用程序免受恶意扩展攻击的问题。</p>
+<h2 id="chapter-2-process--threads">
+  Chapter 2 Process &amp; Threads
+  <a class="anchor" href="#chapter-2-process--threads">#</a>
+</h2>
+<p>*<strong>本章节的顺序稍微不同于课程顺序，将先解释什么是 Process，然后再解释Process Management相关的问题。</strong></p>
+<h3 id="21-process">
+  2.1 Process
+  <a class="anchor" href="#21-process">#</a>
+</h3>
+<p>首先我们回顾一下课程上关于进程（Process)的定义：
+<img src="image-6.png" alt="alt text" />
+在课件中，&ldquo;Program in execution&rdquo; 指的是在运行中的程序，它是一个在执行的实体，不是一个静态存储的物体，这是一个非常重要的概念，只有了解了这个概念，才能明白进程的存在意义。</p>
+<h4 id="211-processes-and-execution-of-program">
+  2.1.1 Processes and Execution of Program
+  <a class="anchor" href="#211-processes-and-execution-of-program">#</a>
+</h4>
+<p><strong>进程</strong> （process)是一种执行受限权限的应用程序实例，是操作系统内核提供的一种受保护的执行抽象。在执行过程中，进程必须经过操作系统内核的授权才能完成某些操作（所以需要security information)，例如访问其他进程的内存、读写磁盘或修改硬件设置。这意味着操作系统内核会介入并验证每个进程对硬件资源的访问，以确保安全性和稳定性。</p>
+<h4 id="进程的执行与存续从程序到进程的转换">
+  <strong>进程的执行与存续：从程序到进程的转换</strong>
+  <a class="anchor" href="#%e8%bf%9b%e7%a8%8b%e7%9a%84%e6%89%a7%e8%a1%8c%e4%b8%8e%e5%ad%98%e7%bb%ad%e4%bb%8e%e7%a8%8b%e5%ba%8f%e5%88%b0%e8%bf%9b%e7%a8%8b%e7%9a%84%e8%bd%ac%e6%8d%a2">#</a>
+</h4>
+<p>在计算机系统中，一个进程的产生和执行可以从程序的运行过程来理解。程序员通常使用高级编程语言编写代码，这些代码（process code)由<strong>编译器（compiler）<strong>转换成机器指令（machine instructions），最终和程序的数据（static data, process data)为一个文件，即</strong>可执行映像（executable image）</strong>。</p>
+<p>运行一个程序时，<strong>操作系统</strong>会将可执行映像中的指令和数据加载到**物理内存（physical memory）**中。同时，它会分配内存中的两个区域来支持程序的运行：</p>
+<ol>
+<li><strong>执行栈（execution stack）</strong>：用于保存函数调用时的局部变量和调用状态。</li>
+<li><strong>堆（heap）</strong>：用于存储动态分配的数据结构(<strong>malloc()</strong> in C)。</li>
+</ol>
+<p>而且操作系统本身也需要驻留在内存中，并且拥有自己的栈和堆，用于管理系统资源和运行用户进程。</p>
+<p>当程序被加载到内存后（<strong>如果已经通过保护阶段</strong>），操作系统可以通过初始化程序的<strong>栈指针</strong>（stack pointer）并跳转到程序的第一条指令，开始程序的执行。</p>
+<h4 id="多进程与资源管理">
+  <strong>多进程与资源管理</strong>
+  <a class="anchor" href="#%e5%a4%9a%e8%bf%9b%e7%a8%8b%e4%b8%8e%e8%b5%84%e6%ba%90%e7%ae%a1%e7%90%86">#</a>
+</h4>
+<p>同一程序可以同时运行多个副本。为此，理想情况下操作系统会在内存中为每个副本创建独立的指令、静态数据、堆和栈的副本。然而，大多数现代操作系统会优化内存使用，对于同时运行的多个副本，仅存储一份共享的程序指令，而数据、堆和栈则需要为每个实例单独分配。为了简化讨论，我们可以假定操作系统为每个进程提供完整的程序副本。</p>
+<p>所以，<strong>进程可以被看作是程序的一个执行实例（instance）</strong>。一个程序（program)可以没有运行的进程，也可以同时存在一个或多个执行的进程。每个程序实例都会作为独立的进程在内存中存在，拥有其独立的数据副本。</p>
+<h4 id="212-pcb">
+  2.1.2 PCB
+  <a class="anchor" href="#212-pcb">#</a>
+</h4>
+<p>为了管理这些进程，操作系统使用了一种称为<strong>进程控制块（Process Control Block, PCB</strong>的数据结构。PCB存储了与进程相关的所有关键信息，例如进程在内存中的位置、可执行映像在磁盘上的存储位置、请求运行该进程的用户信息、以及进程的权限（privileges）等。</p>
+<p>我们的课件中将PCB详细的列举出来：</p>
+<ul>
+<li>
+<p>Process ID (PID): A unique identifier for the process.</p>
+</li>
+<li>
+<p>Process State: The current state of the process.（Start/Ready/Running/Waiting/Terminated)</p>
+</li>
+<li>
+<p>Program Counter: 指向下一条将要执行的指令的内存地址</p>
+</li>
+<li>
+<p>CPU Registers: All register values for managing context switching.
+CPU寄存器字段保存进程的上下文，包括所有的通用寄存器（如AX, BX, CX, DX等，具体取决于CPU架构）和特殊寄存器（如Program Counter（PC）、Stack Pointer（SP）、Flags寄存器等）。当进程切换时，操作系统会将当前进程的寄存器状态保存在PCB中，以便稍后再将它们恢复到CPU中。（而program counter和之前提到的stack pointer也是寄存器的一种）
+我们引用 （<em>xv6: a simple, Unix-like teaching operating system</em>）和（<em>Linux Kernel Development (3rd Edition)</em>）的原文来让各位知道为什么需要CPU Registers：</p>
+<blockquote>
+<p>Threads of execution, often shortened to threads, are the objects of activity within the
+process. Each thread includes a unique program counter, process stack, and set of processor registers.The kernel schedules individual threads, not processes.
+（<em><strong>Linux Kernel Development (3rd Edition)</strong></em>）</p>
+</blockquote>
+<blockquote>
+<p>When a process is not executing, xv6 saves its CPU
+registers, restoring them when it next runs the process.</p>
+</blockquote>
+<blockquote>
+<p>Switching from one thread to another involves saving the old thread’s CPU registers, and restoring the previously-saved registers of the new thread; the fact that the stack pointer and program counter are saved and restored means that the CPU will switch stacks and switch what code it is executing.（<em><strong>xv6: a simple, Unix-like teaching operating system</strong></em>）</p>
+</blockquote>
+</li>
+<li>
+<p>Scheduling Information: Priority of the process
+Memory Management: Details about memory allocated to the process (e.g., page tables, segment tables).</p>
+</li>
+<li>
+<p>Allocated Resource: Information on I/O devices, files opened by the process.</p>
+</li>
+</ul>
+<h4 id="213-process-state--process-blocking--context-switching">
+  2.1.3 Process State &amp; Process Blocking &amp; Context Switching
+  <a class="anchor" href="#213-process-state--process-blocking--context-switching">#</a>
+</h4>
+<p>此章节只做简要解释便于各位理解，请查看老师课件了解完整内容。</p>
+<ul>
+<li>
+<p><strong>Process State</strong>: 进程的状态描述了进程在其生命周期中的当前阶段，常见的状态包括<strong>开始（start)、就绪（Ready）</strong>、<strong>运行（Running）<strong>和</strong>阻塞（Blocked or Waiting）、结束（Terminated)</strong>。当进程获得CPU并执行时，它处于运行状态；当被挂起等待某个事件时（如I/O完成），进入阻塞状态；当它准备好但尚未被CPU调度时，处于就绪状态。</p>
+</li>
+<li>
+<p><strong>Process Blocking</strong>: 当进程无法继续执行（通常由于需要等待某个资源或事件，比如I/O操作完成或获取某个锁），它会被阻塞，进入阻塞状态。此时，操作系统会把它从运行队列中移除，并在等待条件满足时才将其重新置为就绪状态。</p>
+</li>
+<li>
+<p><strong>Context Switching</strong>: 当操作系统从一个进程切换到另一个进程时，它会执行<strong>上下文切换</strong>。这涉及保存当前进程的状态（如寄存器、程序计数器等），并加载另一个进程的状态，从而让新的进程在CPU上运行。这种机制使操作系统能够在不同进程之间公平地分配CPU时间并有效管理系统资源。</p>
+</li>
+</ul>
+<p>当进程被<strong>阻塞（Blocking）<strong>时，操作系统会触发</strong>上下文切换（Context Switching）</strong>，将CPU资源分配给其他处于<strong>就绪（Ready</strong>状态的进程，从而保持系统的高效运行。这些概念共同确保多任务操作系统能够管理和调度进程，使系统资源得到合理利用。</p>
+<h4 id="214-case-study-1-xv6-for-context-switching">
+  2.1.4 Case Study 1: xv6 for context Switching
+  <a class="anchor" href="#214-case-study-1-xv6-for-context-switching">#</a>
+</h4>
+<p>在 <strong>xv6(一种教学用操作系统）</strong> 中，上下文切换是内核进程调度机制的一部分，实现过程大致如下：</p>
+<ol>
+<li>
+<p><strong>保存当前进程的状态</strong>：当内核决定执行上下文切换（比如当一个进程被阻塞，或者调度器决定切换到另一个进程时），会先保存当前进程的状态。这包括CPU寄存器的内容、程序计数器（Program Counter）和栈指针（Stack Pointer）等信息。这些状态信息被存储在当前进程的进程控制块（Process Control Block, PCB）中。</p>
+</li>
+<li>
+<p><strong>选择下一个进程</strong>：<strong>调度器（Scheduler）</strong> 选择下一个可以运行的进程。这是通过从就绪进程列表中挑选一个进程来完成的。</p>
+</li>
+<li>
+<p><strong>恢复新进程的状态</strong>：调度器将选定进程的状态加载到CPU寄存器中，包括程序计数器和栈指针，从而恢复进程的执行状态。这样，新进程从它上次被暂停的地方继续执行。</p>
+</li>
+<li>
+<p><strong>切换过程</strong>：实际的上下文切换代码通常使用汇编语言编写，以处理保存和恢复寄存器值的底层细节。在 xv6 中，<code>swtch</code> 函数是执行上下文切换的关键部分，它负责将CPU上下文从一个进程切换到另一个进程。</p>
+</li>
+</ol>
+<p><strong>xv6 中的具体步骤</strong>：</p>
+<ul>
+<li><strong>调度器（scheduler）</strong> 在一个循环中遍历所有进程，并使用 <code>swtch</code> 函数进行上下文切换。</li>
+<li>进程的状态会被适当更新（例如，将旧进程标记为“等待”或“就绪”，并将新进程标记为“运行”）。</li>
+<li>上下文切换确保当新进程开始运行时，它能无缝恢复，像之前一直在使用CPU一样，其栈和程序计数器都被正确恢复。这种机制使得 xv6 能够在多个进程之间高效切换，实现多任务处理。</li>
+</ul>
+<h4 id="215-case-study-2-linux-for-context-switching">
+  2.1.5 Case Study 2: Linux for context Switching
+  <a class="anchor" href="#215-case-study-2-linux-for-context-switching">#</a>
+</h4>
+<p>此章节我们采用 <em>(Linux Kernel Developement 3rd Edition)</em> 原文：</p>
+<p>在Linux系统中，它由 <code>context_switch()</code> 函数在 <code>kernel/sched.c</code> 中定义。当选择一个新进程运行时，<code>schedule()</code> 函数会调用 <code>context_switch()</code>。这个函数完成两项基本工作：</p>
+<ol>
+<li>调用在 <code>&lt;asm/mmu_context.h&gt;</code> 中声明的 <code>switch_mm()</code>，将虚拟内存映射从前一个进程切换到新进程。</li>
+<li>调用在 <code>&lt;asm/system.h&gt;</code> 中声明的 <code>switch_to()</code>，将处理器状态从前一个进程切换到当前进程。这涉及保存和恢复栈信息、处理器寄存器以及其他架构特定的状态，这些状态必须按进程进行管理和恢复。</li>
+</ol>
+<p>然而，内核必须知道何时调用 <code>schedule()</code>。如果只有在代码显式调用时才执行 <code>schedule()</code>，用户空间程序可能会无限运行。为了解决这个问题，内核使用 <code>need_resched</code> 标志来指示是否应进行重新调度（如表 4.1 所示）。当一个进程需要被抢占时，<code>scheduler_tick()</code> 会设置这个标志；当一个优先级高于当前运行进程的进程被唤醒时，<code>try_to_wake_up()</code> 也会设置这个标志。内核会检查该标志，发现其被设置后，会调用 <code>schedule()</code> 切换到一个新进程。这个标志向内核传递一个信号，表示调度器应尽快被调用，因为有另一个进程更需要运行。
+<img src="ContextSwtiching.png" alt="alt text" />
+在返回用户空间或从中断返回时，会检查 <code>need_resched</code> 标志。如果该标志被设置，内核会在继续运行之前调用调度器。</p>
+<p>这个标志是针对每个进程的，而不是简单地设置为全局变量，因为访问进程描述符中的值比访问全局变量更快（这是由于访问当前进程描述符的速度较快，并且其很有可能已经被缓存）。在历史上，这个标志在 2.2 版本内核之前是全局的。在 2.2 和 2.4 版本中，这个标志是 <code>task_struct</code> 结构中的一个 <code>int</code> 变量。在 2.6 版本中，它被移动到 <code>thread_info</code> 结构中的一个特殊标志变量的单个位中。</p>
+<h3 id="22-threads">
+  2.2 Threads
+  <a class="anchor" href="#22-threads">#</a>
+</h3>
+<h4 id="进程与线程">
+  <strong>进程与线程</strong>
+  <a class="anchor" href="#%e8%bf%9b%e7%a8%8b%e4%b8%8e%e7%ba%bf%e7%a8%8b">#</a>
+</h4>
+<p><strong>线程（Thread）</strong>，也被称为执行线程，是进程内部的活动对象，代表一个独立的控制流。每个线程都包含一个独特的程序计数器（Program Counter）、进程栈（Process Stack）以及一套处理器寄存器（Processor Registers）。在现代操作系统中，内核对线程进行调度，而不是对整个进程进行调度。</p>
+<h4 id="线程的基本特征与结构">
+  <strong>线程的基本特征与结构</strong>
+  <a class="anchor" href="#%e7%ba%bf%e7%a8%8b%e7%9a%84%e5%9f%ba%e6%9c%ac%e7%89%b9%e5%be%81%e4%b8%8e%e7%bb%93%e6%9e%84">#</a>
+</h4>
+<ol>
+<li>
+<p><strong>独立性与共享资源</strong>：每个线程都有自己独立的执行上下文，包括独立的程序计数器、栈空间和寄存器集。这允许线程在进程内部独立运行和切换，而不影响其他线程的执行状态。同时，线程共享所在进程的资源，例如进程地址空间、全局变量、文件描述符和虚拟内存，这使得线程间通信和数据共享更加高效。</p>
+</li>
+<li>
+<p><strong>虚拟化的处理器与虚拟内存</strong>：操作系统虚拟化了处理器和内存，给每个进程（以及线程）一种独占系统资源的假象。虽然系统中的处理器可能会被成百上千个进程共享，但每个线程都感觉自己在单独运行。线程共享进程的虚拟内存，因此能够访问同样的数据和资源，但每个线程都有自己的虚拟化处理器状态。</p>
+</li>
+</ol>
+<h4 id="线程与进程的关系">
+  <strong>线程与进程的关系</strong>
+  <a class="anchor" href="#%e7%ba%bf%e7%a8%8b%e4%b8%8e%e8%bf%9b%e7%a8%8b%e7%9a%84%e5%85%b3%e7%b3%bb">#</a>
+</h4>
+<ul>
+<li><strong>传统Unix系统</strong>：一个进程通常只有一个线程，负责执行该进程的指令。</li>
+<li><strong>现代系统</strong>：多线程程序（即包含多个线程的程序）变得普遍，一个进程可以包含多个线程，这些线程可以并发执行，提高程序的性能和响应能力。</li>
+<li><strong>Linux系统的实现</strong>：Linux将线程视为一种特殊类型的进程。每个线程在本质上也是一个可独立调度的进程。</li>
+</ul>
+<h4 id="线程的栈管理">
+  <strong>线程的栈管理</strong>
+  <a class="anchor" href="#%e7%ba%bf%e7%a8%8b%e7%9a%84%e6%a0%88%e7%ae%a1%e7%90%86">#</a>
+</h4>
+<ul>
+<li>每个进程拥有两个栈：用户栈（User Stack）和内核栈（Kernel Stack）。</li>
+<li>当进程执行用户态指令时，使用用户栈；当进程进入内核态（例如，进行系统调用或处理中断）时，使用内核栈。</li>
+<li>内核栈独立于用户代码，且受到保护，即使用户栈出错或损坏，内核依然能够安全地执行。这种设计确保内核的稳定性与安全性。</li>
+</ul>
+<p>每个进程都可以被视为一个具有受限权限的程序实例，同时肩负执行任务和提供保护两大职责。这些职责足够重要，因此需要分别进行深入讨论。</p>
+<p>对于某些程序而言，它们需要支持<strong>多线程（multi-threading）</strong>。例如，网络浏览器可能需要同时处理用户输入、渲染屏幕内容和接收网络数据。这些任务可以划分为多个线程（threads），每个线程有独立的程序计数器和栈，但共享进程的代码和数据。操作系统通过类似管理多进程的方式来管理一个进程内的多线程，从而实现高效并发运行。</p>
+<h3 id="what-is-process-management">
+  What is Process Management
+  <a class="anchor" href="#what-is-process-management">#</a>
+</h3>
+<h3 id="heading">
+  
+  <a class="anchor" href="#heading">#</a>
+</h3>
+<h2 id="chapter-3-concurrency">
+  Chapter 3 Concurrency
+  <a class="anchor" href="#chapter-3-concurrency">#</a>
+</h2>
+<h2 id="chapter-4-system-calls">
+  Chapter 4 System Calls
+  <a class="anchor" href="#chapter-4-system-calls">#</a>
+</h2>
+</div>
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+
+
+
+
+</div>
+
+
+
+  <script>(function(){function e(e){const t=window.getSelection(),n=document.createRange();n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n)}document.querySelectorAll("pre code").forEach(t=>{t.addEventListener("click",function(){if(window.getSelection().toString())return;e(t.parentElement),navigator.clipboard&&navigator.clipboard.writeText(t.parentElement.textContent)})})})()</script>
+
+
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+<div id="disqus_thread"></div>
+<script>
+    window.disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "Operating System" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+    <aside class="book-toc">
+      <div class="book-toc-content">
+        
+  
+<nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#此文档是为了让各位更好理解uwe-neusoft操作系统课程的内容其中经过阅读产出的解释会放上原文链接此文档使用双语便于各位复习考试">此文档是为了让各位更好理解UWE-Neusoft操作系统课程的内容，其中经过阅读产出的解释会放上原文链接，此文档使用双语，便于各位复习考试。</a></li>
+      </ul>
+    </li>
+    <li><a href="#目录">目录</a></li>
+    <li><a href="#chapter-1-basic-concept">Chapter 1 Basic Concept</a>
+      <ul>
+        <li><a href="#11-related-concepts">1.1 Related Concepts</a></li>
+        <li><a href="#什么是内存">什么是内存？</a></li>
+        <li><a href="#12-operating-system-definition">1.2 Operating System Definition</a></li>
+        <li><a href="#13-kernel-abstraction">1.3 Kernel Abstraction</a></li>
+      </ul>
+    </li>
+    <li><a href="#chapter-2-process--threads">Chapter 2 Process &amp; Threads</a>
+      <ul>
+        <li><a href="#21-process">2.1 Process</a></li>
+        <li><a href="#22-threads">2.2 Threads</a></li>
+        <li><a href="#what-is-process-management">What is Process Management</a></li>
+        <li><a href="#heading"></a></li>
+      </ul>
+    </li>
+    <li><a href="#chapter-3-concurrency">Chapter 3 Concurrency</a></li>
+    <li><a href="#chapter-4-system-calls">Chapter 4 System Calls</a></li>
+  </ul>
+</nav>
+
+
+ 
+      </div>
+    </aside>
+    
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
