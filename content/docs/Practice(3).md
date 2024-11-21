@@ -276,7 +276,7 @@ desktop computers, and servers.
 - 作为硬件和**用户程序**的中介角色，为用户提供对硬件间接操作的直观服务。
 - 提供**可控制的程序交互**，使得不同的程序可以共享数据和一起工作。
 
-![general-purpose operating system](images/image-3.png)
+![general-purpose operating system](./images/image-3.png)
 
 **Figure 1.1 general-purpose operating system**:  这张图可以从整体描述用户和计算机硬件之间的关系，一般而言，用户与软件应用（app)进行交互，而这些app运行在操作系统搭载的环境中，而操作系统作为一个中介来跟底层的硬件交互。
 我们看一下这张简单图示的扩展版
