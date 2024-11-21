@@ -1,4 +1,4 @@
-baseURL = 'https://example.org/'
+baseURL = 'https://capyjade.github.io/Operating-System-Jade/'
 languageCode = 'en-us'
 title = 'Operating System'
 theme = 'hugo-book'
