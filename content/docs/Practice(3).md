@@ -25,8 +25,32 @@ draft = false
     - [PCB](#212-pcb)
     - [Process state&Process Blocking &Context Switch](#213-process-state--process-blocking--context-switching)
   - [Threads](#22-threads)
+    - [Process & Threads](#221-process-thread)
+    - [User-level Threads vs Kernel-level Threads](#222-user-level-threads-vs-kernel-level-threads)
+    - [IPC](#223-inter-prcocess-communication)
 - [Concurrency](#chapter-3-concurrency)
+  - [Concurrency Basic Theory](#31-concurrency-basics)
+    - [Concurrency Explained](#311-什么是并发)
+    - [Concurrency vs Parallelism](#312-并发与并行的区别)
+    - [Why Concurrency](#313-为什么需要并发)
+    - [Process Concurrency](#3141-进程process的并发)
+    - [Threads Concurrency](#3142-线程thread的并发)
+    - [Cocurrency Challenge](#315-并发带来的挑战)
+      - [Race Condition](#3151-竞态条件race-condition)
+      - [DeadLock](#3152-死锁deadlock)
+      - [Starvation](#3153-饥饿starvation)
+    - [Synchronization Primitives](#316-同步机制同步原语)
+    - [Critical Section](#317-临界区critical-section)
+    - [Concurrency Best Practice](#318-并发编程的最佳实践)
+    - [Discussion between Mutex and Semaphores](#319-mutex-和-semaphore的使用争论)
+  - [Case Study 1. Linux Concurrency](#32-case-study-1-concurrency-in-linux-kernel-development)
+  - [Case Study 2. Xv6 Concurrency](#33-case-study-2-concurrency-inxv6-a-simple-operating-system)
+  - [Related Concept](#34-related-concept-explaination)
 - [System Calls](#chapter-4-system-calls)
+  - [System Call Basics](#41-system-call-basic)
+  - [System call mechanism](#42-system-call-mechanism)
+  - [Wrapper](#43-wrapper)
+  - [Error Handeling](#44-error-handling)
 
 ## Chapter 1 Basic Concept
 ### 1.1 Related Concepts
@@ -276,11 +300,11 @@ desktop computers, and servers.
 - 作为硬件和**用户程序**的中介角色，为用户提供对硬件间接操作的直观服务。
 - 提供**可控制的程序交互**，使得不同的程序可以共享数据和一起工作。
 
-![general-purpose operating system](./images/image-3.png)
+![general-purpose operating system](image-3.png)
 
 **Figure 1.1 general-purpose operating system**:  这张图可以从整体描述用户和计算机硬件之间的关系，一般而言，用户与软件应用（app)进行交互，而这些app运行在操作系统搭载的环境中，而操作系统作为一个中介来跟底层的硬件交互。
 我们看一下这张简单图示的扩展版
-![alt text](./images/image-4.png) （***Figure 1.3 Operating Systems Principles & Practice， Thomas Anderson, Mike Dahlin***)
+![alt text](image-4.png) （***Figure 1.3 Operating Systems Principles & Practice， Thomas Anderson, Mike Dahlin***)
 
 这张图更详细的描述了操作系统的功能，在最低层，硬件提供了处理器（Processors, Graphics Processor)、内存(Memory)以及一组用于存储数据(Disk)和与外界通信的设备(Network)。硬件还提供了一些基本操作，供操作系统用于故障隔离和同步(fault isolation and synchronization)。操作系统运行在计算机上作为最低层的软件。它包含一个用于管理各种硬件设备的设备专用层（device-specific layer），以及一组提供给应用程序的设备无关服务（device-independent services）。由于操作系统必须隔离恶意和有漏洞的应用程序，防止它们干扰其他应用程序或操作系统本身，因此操作系统的大部分运行在一个与应用程序代码分离的、受到保护的执行环境中。此外，操作系统的一部分也可以作为系统库运行，并链接到每个应用程序中。
 反过来，应用程序运行在由操作系统内核提供的执行上下文中。这个应用程序上下文不仅仅是硬件设备之上的一个简单抽象；它是一个虚拟环境，具有以下特点：
@@ -362,7 +386,7 @@ desktop computers, and servers.
 （此章节来自*Operating Systems Principles & Practice*）
 
 各位可以使用上述的概念来更好地理解 Lecture 10 page 4的内容（这些机制是什么，在老师的script里面已经有提及，我主要是为了解释为什么有这些机制），也可以将此页PPT作为我们的outline来使用：
-![alt text](/images/image-5.png)
+![alt text](image-5.png)
 ### 1.3 Kernel Abstraction
 操作系统最主要的机制就是保护系统的内部——防止一些错误操作的用户或者程序影响其他的程序或者操作系统本身。保护机制其实满足了我们之前的部分评价标准：
 **可靠性(Reliability)**
@@ -391,7 +415,7 @@ desktop computers, and servers.
 ***本章节的顺序稍微不同于课程顺序，将先解释什么是 Process，然后再解释Process Management相关的问题。**
 ### 2.1 Process
 首先我们回顾一下课程上关于进程（Process)的定义：
-![alt text](/images/image-6.png)
+![alt text](image-6.png)
 在课件中，"Program in execution" 指的是在运行中的程序，它是一个在执行的实体，不是一个静态存储的物体，这是一个非常重要的概念，只有了解了这个概念，才能明白进程的存在意义。
 
 #### 2.1.1 Processes and Execution of Program
@@ -468,12 +492,12 @@ Memory Management: Details about memory allocated to the process (e.g., page tab
 2. 调用在 `<asm/system.h>` 中声明的 `switch_to()`，将处理器状态从前一个进程切换到当前进程。这涉及保存和恢复栈信息、处理器寄存器以及其他架构特定的状态，这些状态必须按进程进行管理和恢复。
 
 然而，内核必须知道何时调用 `schedule()`。如果只有在代码显式调用时才执行 `schedule()`，用户空间程序可能会无限运行。为了解决这个问题，内核使用 `need_resched` 标志来指示是否应进行重新调度（如表 4.1 所示）。当一个进程需要被抢占时，`scheduler_tick()` 会设置这个标志；当一个优先级高于当前运行进程的进程被唤醒时，`try_to_wake_up()` 也会设置这个标志。内核会检查该标志，发现其被设置后，会调用 `schedule()` 切换到一个新进程。这个标志向内核传递一个信号，表示调度器应尽快被调用，因为有另一个进程更需要运行。
-![alt text](/images/ContextSwitching.png)
+![alt text](ContextSwtiching.png)
 在返回用户空间或从中断返回时，会检查 `need_resched` 标志。如果该标志被设置，内核会在继续运行之前调用调度器。
 
 这个标志是针对每个进程的，而不是简单地设置为全局变量，因为访问进程描述符中的值比访问全局变量更快（这是由于访问当前进程描述符的速度较快，并且其很有可能已经被缓存）。在历史上，这个标志在 2.2 版本内核之前是全局的。在 2.2 和 2.4 版本中，这个标志是 `task_struct` 结构中的一个 `int` 变量。在 2.6 版本中，它被移动到 `thread_info` 结构中的一个特殊标志变量的单个位中。
 ### 2.2 Threads
-#### **进程与线程**
+#### **2.2.1 Process, Thread**
 **线程（Thread）**，也被称为执行线程，是进程内部的活动对象，代表一个独立的控制流。每个线程都包含一个独特的程序计数器（Program Counter）、进程栈（Process Stack）以及一套处理器寄存器（Processor Registers）。在现代操作系统中，内核对线程进行调度，而不是对整个进程进行调度。
 
 #### **线程的基本特征与结构**
@@ -495,9 +519,1541 @@ Memory Management: Details about memory allocated to the process (e.g., page tab
 每个进程都可以被视为一个具有受限权限的程序实例，同时肩负执行任务和提供保护两大职责。这些职责足够重要，因此需要分别进行深入讨论。
 
 对于某些程序而言，它们需要支持**多线程（multi-threading）**。例如，网络浏览器可能需要同时处理用户输入、渲染屏幕内容和接收网络数据。这些任务可以划分为多个线程（threads），每个线程有独立的程序计数器和栈，但共享进程的代码和数据。操作系统通过类似管理多进程的方式来管理一个进程内的多线程，从而实现高效并发运行。
+#### 2.2.2 **User Level Threads vs Kernel Level Threads.**
 
-### What is Process Management
-### 
+
+**什么是User Level Thread和Kernel Level Thread？**
+
+- **User Level Thread（用户级线程）**：线程的创建、同步和调度在用户空间完成，内核对线程的存在一无所知。线程库在用户空间实现线程管理。
+可以当作是一种内核级别线程的模拟。
+- **Kernel Level Thread（内核级线程）**：线程由内核直接支持和管理，内核维护线程的上下文信息，负责线程的调度和同步。
+
+**它们有什么区别？**
+
+1. **开销和效率**：
+   - 用户级线程的线程操作不需要内核干预，开销小，速度快。
+   - 内核级线程的线程操作需要系统调用，开销大。
+
+2. **调度**：
+   - 用户级线程的调度由线程库管理，无法利用多处理器。
+   - 内核级线程由内核调度，可以在多个处理器上并行执行。
+
+3. **阻塞问题**：
+   - 在用户级线程中，一个线程的阻塞系统调用可能导致整个进程阻塞。
+   - 内核级线程中，一个线程阻塞不会影响其他线程。
+
+4. **实现复杂度**：
+   - 用户级线程实现复杂，需要解决调度和同步问题。
+   - 内核级线程由操作系统提供支持，实现相对简单。
+
+**《xv6, a simple operating system》中的线程**
+
+xv6没有直接支持用户级线程，但可以通过进程模拟线程，或者在用户空间实现简易的线程库。
+
+**《Operating System: Principles & Practice》中的线程**
+
+书中详细讨论了线程的概念，包括用户级线程和内核级线程的实现方式和差异。
+
+**使用`setjmp`和`longjmp`实现用户级线程：**
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <setjmp.h>
+
+#define MAX_THREADS 2
+
+jmp_buf env[MAX_THREADS];
+int current_thread = 0;
+
+void thread_func1() {
+    printf("Thread 1: Start\n");
+    longjmp(env[1], 1); // 切换到线程2
+}
+
+void thread_func2() {
+    printf("Thread 2: Start\n");
+    longjmp(env[0], 1); // 返回主线程
+}
+
+int main() {
+    if(setjmp(env[0]) == 0) {
+        // 保存主线程环境，初次调用返回0
+        thread_func1(); // 启动线程1
+    } else if(setjmp(env[1]) == 0) {
+        // 保存线程1环境，返回0
+        thread_func2(); // 启动线程2
+    }
+    printf("Main Thread: End\n");
+    return 0;
+}
+```
+
+**代码Explain：**
+
+- `setjmp`和`longjmp`用于保存和恢复执行环境，实现非对称协程。
+- `env`数组保存不同线程的环境。
+- `thread_func1`和`thread_func2`模拟线程的执行，使用`longjmp`切换。
+
+**《Linux Kernel Development》中的线程**
+
+书中详细介绍了Linux内核中的线程实现，Linux将线程和进程统一为任务（task），线程由轻量级进程（Lightweight Process）实现。
+
+**内核级线程示例（使用POSIX线程）：**
+
+```c
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+void *thread_func(void *arg) {
+    printf("Hello from thread!\n");
+    pthread_exit(NULL); // 退出线程
+}
+
+int main() {
+    pthread_t thread;
+    int rc;
+
+    rc = pthread_create(&thread, NULL, thread_func, NULL); // 创建新线程
+    if(rc) {
+        printf("Error: Unable to create thread, %d\n", rc);
+        exit(-1); // 退出程序
+    }
+
+    pthread_join(thread, NULL); // 等待线程完成
+    printf("Thread has finished execution\n");
+    return 0;
+}
+```
+
+**代码解释：**
+
+- `pthread_create`创建一个新线程，执行`thread_func`函数。
+- `pthread_exit`在线程函数中退出线程。
+- `pthread_join`在主线程中等待新线程完成，确保线程的正确终止。
+
+---
+
+**《Linux Kernel Development》中的用户级线程**
+
+《Linux Kernel Development》主要聚焦于Linux内核的设计与实现，包括进程管理、内存管理、设备驱动等。在线程方面，书中深入讨论了Linux内核对线程和进程的支持，以及它们在内核中的实现方式。
+
+在Linux中，线程和进程的概念被统一对待，都是由内核中的`task_struct`结构表示。Linux使用轻量级进程（Lightweight Process，LWP）来实现线程，即通过`clone()`系统调用创建共享资源的进程。因此，Linux的线程本质上是由内核管理的内核级线程。
+
+**关于用户级线程**
+
+尽管《Linux Kernel Development》主要讨论内核级线程，但书中也提到了用户级线程（User-Level Threads）的概念。用户级线程是在用户空间中实现的线程，内核对它们的存在并不知晓。线程的创建、调度和管理都在用户空间完成。
+
+用户级线程的实现需要在用户空间模拟线程的行为，通常通过上下文切换、调度等机制来实现。以下是用户级线程的一般实现方式，以及在Linux上如何实现用户级线程。
+
+---
+
+**用户级线程的实现**
+
+1. **上下文切换**：用户级线程的上下文切换在用户空间完成，不涉及内核。可以使用`setjmp`/`longjmp`或者`getcontext`/`setcontext`函数保存和恢复线程的执行上下文。
+
+2. **调度器**：需要在用户空间实现一个线程调度器，负责管理线程的执行顺序。
+
+3. **线程控制块（TCB）**：为每个线程维护一个线程控制块，包含线程的状态、栈指针、寄存器等信息。
+
+4. **栈空间**：为每个线程分配独立的栈空间。
+
+---
+
+**使用`makecontext`和`swapcontext`实现用户级线程**
+
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <ucontext.h>
+
+#define STACK_SIZE 8192   // 定义每个线程的栈大小
+#define MAX_THREADS 2     // 最大线程数量
+
+ucontext_t contexts[MAX_THREADS];  // 保存线程的上下文
+char stacks[MAX_THREADS][STACK_SIZE];  // 为每个线程分配栈空间
+
+void thread_func1() {
+    printf("Thread 1: Start\n");
+
+    // 切换到线程2的上下文
+    printf("Thread 1: Switching to Thread 2\n");
+    swapcontext(&contexts[0], &contexts[1]);  // 保存当前上下文并切换到contexts[1]
+
+    printf("Thread 1: Back to Thread 1\n");
+    printf("Thread 1: End\n");
+}
+
+void thread_func2() {
+    printf("Thread 2: Start\n");
+
+    // 切换回线程1的上下文
+    printf("Thread 2: Switching back to Thread 1\n");
+    swapcontext(&contexts[1], &contexts[0]);  // 保存当前上下文并切换到contexts[0]
+
+    printf("Thread 2: Back to Thread 2\n");
+    printf("Thread 2: End\n");
+}
+
+int main() {
+    // 初始化线程1的上下文
+    getcontext(&contexts[0]);  // 获取当前上下文作为基础
+    contexts[0].uc_stack.ss_sp = stacks[0];  // 设置线程1的栈指针
+    contexts[0].uc_stack.ss_size = STACK_SIZE;  // 设置线程1的栈大小
+    contexts[0].uc_link = NULL;  // 线程结束后不再切换到其他上下文
+    makecontext(&contexts[0], thread_func1, 0);  // 将线程函数绑定到上下文
+
+    // 初始化线程2的上下文
+    getcontext(&contexts[1]);  // 获取当前上下文作为基础
+    contexts[1].uc_stack.ss_sp = stacks[1];  // 设置线程2的栈指针
+    contexts[1].uc_stack.ss_size = STACK_SIZE;  // 设置线程2的栈大小
+    contexts[1].uc_link = NULL;  // 线程结束后不再切换到其他上下文
+    makecontext(&contexts[1], thread_func2, 0);  // 将线程函数绑定到上下文
+
+    printf("Main: Starting Thread 1\n");
+    swapcontext(&contexts[2], &contexts[0]);  // 从主上下文切换到线程1
+
+    printf("Main: All threads have finished\n");
+    return 0;
+}
+```
+
+**Explain：**
+
+- **头文件和宏定义**：
+  - `#include <ucontext.h>`：引入用于上下文切换的函数和类型。
+  - `STACK_SIZE`：定义每个线程的栈大小。
+  - `MAX_THREADS`：最大线程数量。
+
+- **全局变量**：
+  - `contexts`：保存每个线程的上下文信息。
+  - `stacks`：为每个线程分配独立的栈空间。
+
+- **`thread_func1`函数**：
+  - 打印线程1的开始信息。
+  - 使用`swapcontext`切换到线程2的上下文，保存当前上下文到`contexts[0]`。
+  - 当从线程2返回时，继续执行，打印线程1的结束信息。
+
+- **`thread_func2`函数**：
+  - 打印线程2的开始信息。
+  - 使用`swapcontext`切换回线程1的上下文，保存当前上下文到`contexts[1]`。
+  - 当从线程1返回时，继续执行，打印线程2的结束信息。
+
+- **`main`函数**：
+  - 使用`getcontext`初始化线程1和线程2的上下文。
+  - 设置每个线程的栈指针和栈大小。
+  - 使用`makecontext`将线程函数绑定到各自的上下文。
+  - 打印主函数开始信息，使用`swapcontext`切换到线程1。
+  - 当所有线程执行完毕后，打印主函数的结束信息。
+
+**注意事项**：
+
+- **栈空间**：为每个线程分配独立的栈空间，防止栈冲突。
+- **上下文切换**：`swapcontext`用于保存当前上下文并切换到另一个上下文。
+- **线程结束**：当线程函数执行完毕，程序会自动返回到调用`swapcontext`的地方。
+
+---
+
+**在Linux上实现用户级线程的挑战**
+
+1. **阻塞调用问题**：如果用户级线程在执行过程中调用了阻塞的系统调用（如`read`、`sleep`等），整个进程都会被阻塞，导致其他线程无法继续执行。
+
+2. **多处理器利用**：用户级线程无法利用多核处理器的优势，因为内核只认为这是一个单一的进程，所有的线程都在一个内核级线程中执行。
+
+3. **信号处理**：信号通常是进程级的，处理信号时需要特别注意，防止影响其他线程。
+
+---
+
+**解决方案**
+
+- **非阻塞I/O和异步操作**：使用非阻塞的系统调用或异步I/O，以避免阻塞整个进程。
+
+- **定时轮询**：使用`select`或`poll`等系统调用，定时检查I/O状态，避免阻塞。
+
+- **协程模型**：将程序设计为协程，明确控制切换点，避免意外的阻塞。
+
+---
+
+**《Linux Kernel Development》对用户级线程的讨论**
+
+在《Linux Kernel Development》中，作者提到用户级线程通常是在用户空间模拟的线程模型，内核对其不可见。虽然Linux内核本身不直接支持用户级线程，但理解其工作原理对于深入理解线程的概念和操作系统的线程管理机制是有益的。
+
+作者还讨论了内核级线程与用户级线程的优缺点，并解释了为什么Linux选择使用内核级线程：
+
+- **性能与开销**：内核级线程的创建和上下文切换开销较大，但能够充分利用多核处理器的能力。
+
+- **调度与管理**：内核级线程由内核调度，更加公平和高效；用户级线程的调度完全依赖于用户空间的实现。
+
+- **阻塞与同步**：内核级线程的阻塞不会影响其他线程；用户级线程需要避免阻塞操作或自行管理。
+
+
+
+---
+
+
+#### 2.2.3 Inter-Prcocess Communication
+
+
+**什么是IPC？**
+
+IPC（Inter-Process Communication，进程间通信）是指多个进程之间交换数据和信息的一系列机制和方法。由于操作系统将内存空间隔离，进程默认无法直接访问彼此的内存，因此需要IPC机制来实现进程间的数据交换和同步。
+
+**为什么要有IPC？**
+
+在现代操作系统中，应用程序通常由多个进程组成，这些进程需要协同工作。例如，一个进程可能负责读取数据，另一个进程负责处理数据。为了实现进程间的协作和数据共享，IPC机制是必不可少的。IPC提供了进程间通信和同步的手段，确保数据一致性，提高系统的效率和可靠性。
+
+**IPC有哪些实现方式？**
+
+常见的IPC机制包括：
+
+1. **管道（Pipe）和命名管道（FIFO）**：用于在父子进程或无亲缘关系的进程之间传递数据的单向或双向通信通道。
+
+2. **消息队列（Message Queue）**：允许进程以消息的形式发送和接收数据，支持随机查询。
+
+3. **共享内存（Shared Memory）**：多个进程可以共享同一块物理内存，实现高速的数据交换。
+
+4. **信号量（Semaphore）**：用于进程间的同步，控制对共享资源的访问，防止竞争条件。
+
+5. **信号（Signal）**：用于通知进程某个事件的发生，如中断、异常等。
+
+6. **套接字（Socket）**：不仅可以用于同一台机器上的进程通信，还可以用于不同机器间的网络通信。
+
+---
+
+
+
+**《xv6, a simple operating system》中的IPC**
+
+xv6是一个教学用途的简化版Unix操作系统，用于帮助理解操作系统的核心概念。它实现了基本的IPC机制，主要是管道（Pipe）。
+
+- **管道（Pipe）**：xv6实现了Unix风格的匿名管道，允许父子进程之间进行单向通信。
+
+**管道代码：**
+
+```c
+// 创建一个管道，实现父子进程间的通信
+int p[2];
+pipe(p); // 创建管道，p[0]是读端，p[1]是写端
+
+if(fork() == 0) {
+    // 子进程
+    close(p[0]); // 关闭读端，不需要读取数据
+    write(p[1], "hello", 5); // 向管道写入数据"hello"
+    close(p[1]); // 关闭写端，完成写入
+    exit(0); // 退出子进程
+} else {
+    // 父进程
+    close(p[1]); // 关闭写端，不需要写入数据
+    char buf[5];
+    read(p[0], buf, 5); // 从管道读取5个字节的数据到buf
+    close(p[0]); // 关闭读端，完成读取
+    wait(0); // 等待子进程结束
+}
+```
+
+**代码解释：**
+
+- `pipe(p);` 创建一个匿名管道，`p[0]`为读端，`p[1]`为写端。
+- 子进程关闭不需要的读端，父进程关闭不需要的写端，防止数据泄漏。
+- 子进程向管道写入数据，父进程从管道读取数据，实现进程间通信。
+
+**《Operating System: Principles & Practice》中的IPC**
+
+这本书全面介绍了操作系统的基本原理和实践，包括进程、线程、同步和IPC机制。
+
+- **消息传递（Message Passing）**：强调进程之间通过发送和接收消息进行通信，适用于分布式系统。
+
+- **共享内存（Shared Memory）**：讨论了进程如何共享内存空间，以及需要的同步机制。
+
+**共享内存代码：**
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <sys/wait.h>
+
+int main() {
+    // 使用mmap创建共享内存区域
+    int *shared_var = mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE,
+                           MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    *shared_var = 0; // 初始化共享变量
+
+    if(fork() == 0) {
+        // 子进程
+        *shared_var = 100; // 修改共享变量的值
+        exit(0); // 退出子进程
+    } else {
+        // 父进程
+        wait(NULL); // 等待子进程完成
+        printf("Shared variable: %d\n", *shared_var); // 输出共享变量的值
+        munmap(shared_var, sizeof(int)); // 解除共享内存映射
+    }
+    return 0;
+}
+```
+
+**代码解释：**
+
+- `mmap`函数创建一个共享内存区域，`PROT_READ | PROT_WRITE`设置读写权限，`MAP_SHARED`表示共享。
+- 子进程修改共享变量的值，父进程可以读取到修改后的值，实现数据共享。
+
+**《Linux Kernel Development》中的IPC**
+
+这本书深入探讨了Linux内核的实现，包括IPC机制。
+
+- **System V IPC**：详细介绍了System V风格的消息队列、信号量和共享内存。
+
+- **POSIX IPC**：介绍了POSIX标准的IPC机制，更加现代和可移植。
+
+- **套接字（Sockets）**：讨论了网络编程和本地套接字通信。
+
+**示例代码（消息队列）：**
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <mqueue.h>
+#include <string.h>
+
+int main() {
+    mqd_t mq;
+    struct mq_attr attr;
+    char buffer[1024];
+
+    // 设置消息队列属性
+    attr.mq_flags = 0;        // 阻塞模式
+    attr.mq_maxmsg = 10;      // 最大消息数
+    attr.mq_msgsize = 1024;   // 最大消息大小
+    attr.mq_curmsgs = 0;      // 当前消息数
+
+    // 创建或打开消息队列
+    mq = mq_open("/test_queue", O_CREAT | O_RDWR, 0644, &attr);
+
+    if(fork() == 0) {
+        // 子进程发送消息
+        strcpy(buffer, "Hello from child");
+        mq_send(mq, buffer, strlen(buffer) + 1, 0); // 发送消息到队列
+        exit(0); // 退出子进程
+    } else {
+        // 父进程接收消息
+        wait(NULL); // 等待子进程完成
+        mq_receive(mq, buffer, 1024, NULL); // 从队列接收消息
+        printf("Received: %s\n", buffer); // 输出接收到的消息
+        mq_close(mq); // 关闭消息队列
+        mq_unlink("/test_queue"); // 删除消息队列
+    }
+    return 0;
+}
+```
+
+**代码解释：**
+
+- 使用`mq_open`创建一个POSIX消息队列，指定队列名称和属性。
+- 子进程使用`mq_send`发送消息，父进程使用`mq_receive`接收消息，实现进程间通信。
+
+---
+
+### 2.3 Scheduling.
+关于调度算法，请各位首先分清抢占式和非抢占式的区别，老师的lecture notes已经非常详细。下述章节将关注Linux操作系统的核心调度策略
+#### 2.3.1 Linux Scheduling
+**Linux的调度器支持什么调度策略？**
+
+Linux内核的调度器是操作系统的核心组件之一，负责在多个进程和线程之间分配CPU时间，以实现多任务处理。Linux调度器支持多种调度策略，以满足不同类型任务的需求。主要的调度策略分为实时调度策略和普通调度策略。
+
+---
+
+#### **主要的调度策略**
+
+1. **实时调度策略（Real-Time Scheduling Policies）**
+   - **SCHED_FIFO（先进先出调度）**
+   - **SCHED_RR（时间片轮转调度）**
+   - **SCHED_DEADLINE（截止期限调度）**
+
+2. **普通调度策略（Normal Scheduling Policies）**
+   - **SCHED_OTHER（也称为SCHED_NORMAL）**
+   - **SCHED_BATCH（批处理调度）**
+   - **SCHED_IDLE（空闲调度）**
+
+---
+
+#### **实时调度策略**
+
+实时调度策略用于对时间要求严格的任务，主要应用于需要确定响应时间的场景，如工业控制、机器人、音视频处理等。
+
+#### **SCHED_FIFO（先进先出）**
+
+- **特点：**
+  - 是一种非抢占式的优先级调度策略。
+  - 任务按照固定优先级执行，优先级高的任务优先运行。
+  - 同一优先级的任务按照先进先出的顺序执行。
+  - 只要任务不主动放弃CPU（如阻塞或完成），就会一直占用CPU。
+
+- **使用场景：**
+  - 需要精确控制任务执行顺序和响应时间的场合。
+
+- **示例：**
+
+  ```c
+  #include <pthread.h>
+  #include <sched.h>
+  #include <stdio.h>
+
+  int main() {
+      pthread_t thread;
+      pthread_attr_t attr;
+      struct sched_param param;
+
+      // 初始化线程属性
+      pthread_attr_init(&attr);
+
+      // 设置调度策略为SCHED_FIFO
+      pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+
+      // 设置线程优先级
+      param.sched_priority = sched_get_priority_max(SCHED_FIFO);
+      pthread_attr_setschedparam(&attr, &param);
+
+      // 创建线程
+      pthread_create(&thread, &attr, thread_function, NULL);
+
+      // 其他代码...
+
+      return 0;
+  }
+  ```
+
+  **代码作用**
+
+  - 使用 `pthread_attr_setschedpolicy` 设置线程的调度策略为 `SCHED_FIFO`。
+  - 使用 `pthread_attr_setschedparam` 设置线程的优先级。
+  - 实时线程需要有合适的权限（通常是超级用户权限）才能设置成功。
+
+#### **SCHED_RR（时间片轮转）**
+
+- **特点：**
+  - 是 `SCHED_FIFO` 的增强版，添加了时间片轮转机制。
+  - 同一优先级的任务按照时间片轮转执行，防止单个任务长期占用CPU。
+  - 如果任务时间片耗尽且还有其他同优先级任务等待，则任务被放到队列末尾。
+
+- **使用场景：**
+  - 需要实时性且希望同一优先级的任务能够公平分享CPU时间。
+
+- **示例：**
+
+  ```c
+  // 与SCHED_FIFO类似，只需将调度策略改为SCHED_RR
+  pthread_attr_setschedpolicy(&attr, SCHED_RR);
+  ```
+
+#### **SCHED_DEADLINE（截止期限调度）**
+
+- **特点：**
+  - 基于 Earliest Deadline First（EDF）算法，实现了截止期限驱动的调度。
+  - 任务需要指定三个参数：运行时间、周期和截止期限。
+  - 调度器确保任务在截止期限前完成执行。
+
+- **使用场景：**
+  - 硬实时系统，需要严格满足任务的截止期限。
+
+- **示例：**
+
+  由于 `SCHED_DEADLINE` 需要使用特定的系统调用 `sched_setattr`，示例较为复杂，通常需要内核支持和特权权限。
+
+---
+
+#### **普通调度策略**
+
+普通调度策略用于一般的用户进程，是默认的调度策略。
+
+#### **SCHED_OTHER（SCHED_NORMAL）**
+
+- **特点：**
+  - Linux系统的默认调度策略，也称为完全公平调度器（CFS）。
+  - 基于公平原则，将CPU时间按权重公平地分配给各个任务。
+  - 不支持手动设置优先级，使用静态优先级为0。
+
+- **使用场景：**
+  - 适用于大多数普通用户进程，如应用程序、后台服务等。
+
+- **CFS的工作原理：**
+
+  - **虚拟运行时间（vruntime）：** 每个任务都有一个虚拟运行时间，调度器选择 `vruntime` 最小的任务运行。
+  - **权重（weight）：** 根据任务的静态优先级计算权重，影响 `vruntime` 的增长速度。
+  - **红黑树：** 任务按照 `vruntime` 存储在红黑树中，实现高效的调度。
+
+#### **SCHED_BATCH（批处理调度）**
+
+- **特点：**
+  - 适用于批处理任务，不需要交互性。
+  - 任务只在系统空闲时运行，避免影响交互式任务的响应性。
+  - 调度器对批处理任务的调度频率较低，减少调度开销。
+
+- **使用场景：**
+  - 后台计算、日志处理、大数据分析等不需要实时响应的任务。
+
+- **示例：**
+
+  ```c
+  pthread_attr_setschedpolicy(&attr, SCHED_BATCH);
+  ```
+
+#### **SCHED_IDLE（空闲调度）**
+
+- **特点：**
+  - 优先级最低的调度策略，只有在系统完全空闲时才会运行。
+  - 对其他任务几乎没有影响，确保系统的响应性。
+
+- **使用场景：**
+  - 超低优先级的后台任务，如系统维护、数据预处理等。
+
+- **示例：**
+
+  ```c
+  pthread_attr_setschedpolicy(&attr, SCHED_IDLE);
+  ```
+
+---
+
+#### **调度策略的配置和使用**
+
+**查看和设置进程的调度策略：**
+
+- **命令行工具：**
+  - **`chrt`**：用于查看和设置进程的实时调度策略。
+
+    ```bash
+    # 查看进程的调度策略和优先级
+    chrt -p PID
+
+    # 以SCHED_FIFO策略和优先级99启动命令
+    sudo chrt -f 99 command
+
+    # 将已运行的进程PID的调度策略改为SCHED_RR，优先级50
+    sudo chrt -r -p 50 PID
+    ```
+
+- **编程接口：**
+  - 使用 `sched_setscheduler`、`pthread_setschedparam` 等函数设置进程或线程的调度策略和优先级。
+
+**示例：设置线程的调度策略和优先级**
+
+```c
+#include <pthread.h>
+#include <sched.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+void *thread_function(void *arg) {
+    // 线程的实际工作
+    while (1) {
+        // 执行任务
+    }
+    return NULL;
+}
+
+int main() {
+    pthread_t thread;
+    pthread_attr_t attr;
+    struct sched_param param;
+    int ret;
+
+    // 初始化线程属性
+    pthread_attr_init(&attr);
+
+    // 设置为显式调度属性
+    pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+
+    // 设置调度策略为SCHED_FIFO
+    pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+
+    // 设置线程优先级
+    param.sched_priority = 80; // 优先级范围为1-99，值越大优先级越高
+    pthread_attr_setschedparam(&attr, &param);
+
+    // 创建线程
+    ret = pthread_create(&thread, &attr, thread_function, NULL);
+    if (ret != 0) {
+        perror("pthread_create");
+        return -1;
+    }
+
+    // 等待线程结束
+    pthread_join(thread, NULL);
+
+    return 0;
+}
+```
+
+**代码Explain：**
+
+- **`pthread_attr_setinheritsched`**：设置是否继承调度属性，`PTHREAD_EXPLICIT_SCHED` 表示使用显式指定的属性。
+- **`pthread_attr_setschedpolicy`**：设置调度策略。
+- **`pthread_attr_setschedparam`**：设置调度参数，如优先级。
+
+**注意事项：**
+
+- **权限要求：** 设置实时调度策略和高优先级需要超级用户权限，否则可能会失败。
+- **优先级范围：** 实时调度策略的优先级范围为 1-99，普通调度策略的优先级为 0。
+- **资源占用：** 实时任务可能会占用大量CPU资源，需谨慎使用，避免影响系统的稳定性。
+
+---
+
+#### **完全公平调度器（CFS）**
+
+**简介：**
+
+- **CFS（Completely Fair Scheduler）** 是自 Linux 内核 2.6.23 版本起引入的默认调度器。
+- 旨在以公平的方式分配 CPU 时间，避免饥饿和不公平的资源分配。
+
+**工作原理：**
+
+- **虚拟运行时间（vruntime）：** 每个任务都有一个 `vruntime`，表示任务实际运行的时间乘以权重的倒数。
+- **权重：** 根据任务的静态优先级计算，优先级高的任务权重大，`vruntime` 增长慢。
+- **红黑树：** 任务按照 `vruntime` 存储在红黑树中，左边的任务 `vruntime` 最小，优先被调度。
+
+**特点：**
+
+- **避免饥饿：** 所有任务都能得到 CPU 时间，避免长时间得不到调度。
+- **响应性好：** 对交互式任务有良好的响应性。
+- **可伸缩性：** 能够在多核、多任务的情况下保持高效的调度性能。
+
+---
+
+#### **实时调度的注意事项**
+
+- **优先级反转：** 当低优先级任务持有高优先级任务需要的资源时，可能导致高优先级任务被阻塞，需要考虑优先级继承等机制。
+- **系统稳定性：** 实时任务可能占用大量 CPU 时间，需防止实时任务影响系统的整体性能和稳定性。
+- **权限管理：** 设置实时调度策略和高优先级通常需要超级用户权限，防止普通用户滥用。
+
+---
+
+
+
+
+
+
+
 ## Chapter 3 Concurrency
+### 3.1 Concurrency Basics.
+#### 3.1.1 **什么是并发？**
+
+**Concurrency** 是指计算机系统中能够在同一时间段内处理多个任务的能力。尽管在单核处理器上，多个任务并不是在同一时刻真正地同时执行，但通过快速地在任务之间切换，系统可以让用户感受到多个任务似乎在同时进行。在多核或多处理器系统中，多个任务可以真正地并行执行。
+
+并发的主要目标是提高资源利用率和系统吞吐量，使计算机能够更有效地处理多个任务。同时，并发也带来了新的挑战，例如资源竞争、死锁和数据不一致等问题，需要通过适当的同步和协调机制来解决。
+下面我将用三本参考教材的内容来更好的帮助各位理解并发的概念。
+
+
+
+
+#### 3.1.2 **并发与并行的区别**
+
+- **并发（Concurrency）**：关注**多个任务在同一时间段内**的交替执行，主要是通过任务之间的快速切换实现的。即使在单核CPU上，也可以实现并发。
+
+- **并行（Parallelism）**：强调**多个任务在同一时刻**真正地同时执行，需要多核或多处理器的支持。
+
+**简单比喻：**
+
+- **并发**就像你在同一小时内交替处理多个任务，比如一会儿读书，一会儿写作，一会儿回答电话，但在任何时刻你只能做一件事。
+
+- **并行**则是你和朋友同时处理不同的任务，你读书，他写作，你们在同一时刻都在工作。
+
+---
+
+#### 3.1.3 **为什么需要并发？**
+
+- **提高资源利用率**：让CPU、内存和I/O设备等资源得到充分利用，减少资源的空闲时间。
+
+- **改善用户体验**：使应用程序能够同时处理多个任务，提高响应速度。例如，浏览器可以同时加载多个网页元素。
+
+- **解决复杂问题**：一些计算密集型任务可以分解为多个子任务，通过并发处理提高效率。
+
+---
+
+#### 3.1.4 
+
+#### 3.1.4.1 **进程（Process）的并发**
+
+- **定义**：进程是操作系统中程序执行的基本单位。每个进程都有自己的内存空间、系统资源和执行上下文。
+
+- **特点**：
+
+  - **独立性**：进程之间相互隔离，一个进程的崩溃不会影响其他进程。
+
+  - **资源开销大**：创建和切换进程需要较多的系统资源和时间。
+
+- **应用场景**：适用于需要高度隔离的任务，例如不同的应用程序。
+
+#### 3.1.4.2 **线程（Thread）的并发**
+
+- **定义**：线程是进程中的一个执行流，是CPU调度的基本单位。一个进程可以包含多个线程，线程之间共享进程的内存空间和资源。
+
+- **特点**：
+
+  - **共享资源**：线程共享进程的地址空间，可以方便地共享数据。
+
+  - **轻量级**：创建和切换线程的开销比进程小。
+
+  - **同步问题**：由于共享内存，多个线程同时访问同一资源可能导致数据不一致，需要同步机制。
+
+- **应用场景**：适用于需要同时执行多个任务且需要共享数据的应用，例如Web服务器的多线程处理客户端请求。
+
+---
+
+#### 3.1.5 **并发带来的挑战**
+
+#### 3.1.5.1 **竞态条件（Race Condition）**
+
+- **定义**：当多个线程或进程同时访问和修改共享数据，且结果依赖于执行顺序时，就会出现竞态条件。
+
+- **问题**：可能导致数据不一致、程序崩溃等不可预期的错误。
+
+- **解决方法**：使用同步机制来控制对共享资源的访问。
+
+#### 3.1.5.2 **死锁（Deadlock）**
+
+- **定义**：当两个或多个线程互相等待对方释放资源，导致所有线程都无法继续执行。
+
+- **问题**：系统陷入僵局，无法推进。
+
+- **解决方法**：设计合理的资源分配策略，避免循环等待。
+
+#### 3.1.5.3 **饥饿（Starvation）**
+
+- **定义**：某个线程长期得不到所需的资源，无法执行。
+
+- **问题**：影响程序的公平性和响应性。
+
+- **解决方法**：采用公平的调度策略，确保每个线程都有机会执行。
+
+---
+
+#### 3.1.6 **同步机制（同步原语）**
+
+为了在并发环境下安全地访问共享资源，需要使用**同步机制**来协调线程或进程的执行。
+
+#### **互斥锁（Mutex）**
+
+- **作用**：确保在同一时间只有一个线程能够进入临界区（访问共享资源）。
+
+- **使用方法**：
+
+  ```c
+  pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; // 初始化互斥锁
+
+  pthread_mutex_lock(&mutex);   // 获取锁
+  // 访问共享资源
+  pthread_mutex_unlock(&mutex); // 释放锁
+  ```
+
+#### **信号量（Semaphore）**
+
+- **作用**：基于计数器的同步机制，可以控制同时访问资源的线程数量。
+
+- **使用方法**：
+
+  ```c
+  sem_t sem;
+  sem_init(&sem, 0, initial_value); // 初始化信号量
+
+  sem_wait(&sem);   // 等待信号量，计数器减一
+  // 访问共享资源
+  sem_post(&sem);   // 释放信号量，计数器加一
+  ```
+
+#### **条件变量（Condition Variable）**
+
+- **作用**：使线程能够等待特定的条件成立，再继续执行。
+
+- **使用方法**：
+
+  ```c
+  pthread_cond_t cond = PTHREAD_COND_INITIALIZER; // 初始化条件变量
+  pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+  pthread_mutex_lock(&mutex);
+  while (condition_not_met) {
+      pthread_cond_wait(&cond, &mutex); // 等待条件成立
+  }
+  // 条件已满足，执行操作
+  pthread_mutex_unlock(&mutex);
+
+  // 其他线程中，当条件成立时
+  pthread_mutex_lock(&mutex);
+  // 修改条件状态
+  pthread_cond_signal(&cond); // 通知等待的线程
+  pthread_mutex_unlock(&mutex);
+  ```
+
+#### **自旋锁（Spinlock）**
+
+- **作用**：线程在等待锁时，会一直循环检查锁的状态，而不进入睡眠。
+
+- **特点**：适用于锁持有时间很短的场合，可以避免线程切换的开销。
+
+---
+
+#### 3.1.7 **临界区（Critical Section）**
+
+- **定义**：对共享资源进行访问的代码块称为临界区。
+
+- **要求**：在任何时刻，最多只能有一个线程执行临界区代码，以保护共享资源的完整性。
+
+- **实现**：使用互斥锁、信号量等同步机制来保护临界区。
+
+---
+
+
+
+#### 3.1.8 **并发编程的最佳实践**
+
+- **正确使用同步机制**：在访问共享资源前，确保已正确获取锁。
+
+- **避免死锁**：遵循一致的锁获取顺序，及时释放锁。
+
+- **减少锁的粒度**：锁的范围越小，并发性越高，但要确保数据安全。
+
+- **注意线程安全的库函数**：在多线程环境下，尽量使用线程安全的函数。
+
+- **测试和调试**：并发错误往往难以重现，需要仔细测试和调试。
+
+
+#### 3.1.9 Mutex 和 Semaphore的使用争论
+
+
+在并发编程中，**互斥锁（Mutex）** 和 **信号量（Semaphore）** 是两种常用的同步原语。尽管它们都可以用于控制对共享资源的访问，但它们的工作机制和使用场景有显著的区别。这导致了一些关于如何正确使用它们的争论，特别是在多进程访问共享资源的情况下。
+
+一些人认为，不能简单地将信号量用作多个进程访问的互斥锁。他们通过**生产者-消费者模型**来解释这一观点。下面，我将详细阐述Mutex和Semaphore的区别，以及为什么在某些情况下不应将Semaphore简单地用作Mutex。
+
+---
+
+#### **Mutex和Semaphore的区别**
+
+#### **互斥锁（Mutex）**
+
+- **定义**：Mutex是用于实现互斥访问的同步原语，确保在任何时刻，只有一个线程或进程可以访问共享资源。
+
+- **特点**：
+  - **二进制状态**：Mutex只有两种状态——锁定（Locked）和解锁（Unlocked）。
+  - **所有权**：Mutex有所有权概念，锁定Mutex的线程必须由同一线程解锁。
+  - **用于线程间同步**：通常用于线程之间的同步，也可以用于进程间同步（需要支持进程共享的Mutex）。
+
+- **使用方法**：
+  - **锁定**：线程在进入临界区之前调用`lock()`或`pthread_mutex_lock()`。
+  - **解锁**：线程在离开临界区之后调用`unlock()`或`pthread_mutex_unlock()`。
+
+#### **信号量（Semaphore）**
+
+- **定义**：Semaphore是基于计数器的同步原语，用于控制对资源的访问，计数器表示可用资源的数量。
+
+- **类型**：
+  - **计数信号量（Counting Semaphore）**：计数值可以大于1，用于限制同时访问资源的线程数量。
+  - **二进制信号量（Binary Semaphore）**：计数值只能是0或1，功能类似于Mutex，但没有所有权概念。
+
+- **特点**：
+  - **无所有权**：任何线程都可以增加或减少信号量的计数值。
+  - **用于进程间或线程间同步**：适用于更复杂的同步场景。
+
+- **使用方法**：
+  - **等待（P操作）**：线程调用`wait()`或`sem_wait()`，如果计数器大于0，计数器减一；否则，线程阻塞。
+  - **信号（V操作）**：线程调用`signal()`或`sem_post()`，计数器加一，如果有线程阻塞，则唤醒一个。
+
+---
+
+#### **为什么Semaphore不能简单地用作Mutex？**
+
+#### **所有权问题**
+
+- **Mutex的所有权**：Mutex要求加锁和解锁必须在同一线程或进程中进行，这确保了对共享资源的访问控制和程序的可读性。
+
+- **Semaphore的无所有权**：Semaphore没有所有权概念，任何线程或进程都可以执行`sem_post()`，这可能导致程序逻辑混乱。
+
+#### **用Semaphore作为Mutex的风险**
+
+- **误用可能导致错误**：由于Semaphore没有所有权，如果使用Semaphore作为Mutex，可能会出现以下问题：
+  - **多个线程意外地释放锁**：导致共享资源被多个线程同时访问。
+  - **死锁**：如果Semaphore的初始值设置错误，或者`sem_wait()`和`sem_post()`的调用次数不匹配，可能导致线程永远阻塞。
+
+- **代码可读性差**：使用Semaphore模拟Mutex会使代码难以理解，增加维护难度。
+
+#### **生产者-消费者模型的解释**
+
+在生产者-消费者模型中，生产者和消费者通过共享缓冲区进行数据交换。通常，使用Semaphore来控制缓冲区的状态和访问，但并不将Semaphore简单地当作Mutex使用。
+
+**示例场景：**
+
+- **生产者-消费者问题**需要三个同步机制：
+  1. **互斥锁（Mutex）**：保护对共享缓冲区的访问，确保一次只有一个线程可以修改缓冲区。
+  2. **两个信号量（Semaphore）**：
+     - **空闲槽位信号量（empty）**：表示缓冲区中空闲槽位的数量，初始值为缓冲区大小。
+     - **已用槽位信号量（full）**：表示缓冲区中已用槽位的数量，初始值为0。
+
+**为什么不能用Semaphore替代Mutex？**
+
+- **Mutex用于保护缓冲区的互斥访问**，确保生产者和消费者不会同时修改缓冲区。
+
+- **Semaphore用于计数和同步**，协调生产者和消费者的速度，确保不会出现缓冲区溢出或空读的情况。
+
+- **如果用Semaphore替代Mutex**，由于Semaphore没有所有权概念，可能导致多个线程同时进入临界区，破坏了对缓冲区的互斥访问。
+
+---
+
+#### **生产者-消费者模型的实现**
+
+下面通过代码示例来说明为什么Semaphore不能简单地用作Mutex，以及正确的同步方式。
+
+#### **正确的实现方式**
+
+**代码示例：**
+
+```c
+#include <pthread.h>
+#include <semaphore.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#define BUFFER_SIZE 5
+
+int buffer[BUFFER_SIZE];
+int in = 0;  // 写入位置
+int out = 0; // 读取位置
+
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; // 互斥锁，保护缓冲区
+sem_t empty; // 空闲槽位信号量
+sem_t full;  // 已用槽位信号量
+
+void *producer(void *arg) {
+    int item;
+    while (1) {
+        // 生产数据
+        item = rand() % 100;
+
+        sem_wait(&empty);            // 等待空闲槽位
+        pthread_mutex_lock(&mutex);  // 加锁，进入临界区
+
+        // 将数据写入缓冲区
+        buffer[in] = item;
+        in = (in + 1) % BUFFER_SIZE;
+        printf("Producer produced: %d\n", item);
+
+        pthread_mutex_unlock(&mutex); // 解锁，离开临界区
+        sem_post(&full);              // 增加已用槽位计数
+
+        // 模拟生产时间
+        sleep(1);
+    }
+    return NULL;
+}
+
+void *consumer(void *arg) {
+    int item;
+    while (1) {
+        sem_wait(&full);             // 等待已用槽位
+        pthread_mutex_lock(&mutex);  // 加锁，进入临界区
+
+        // 从缓冲区读取数据
+        item = buffer[out];
+        out = (out + 1) % BUFFER_SIZE;
+        printf("Consumer consumed: %d\n", item);
+
+        pthread_mutex_unlock(&mutex); // 解锁，离开临界区
+        sem_post(&empty);             // 增加空闲槽位计数
+
+        // 模拟消费时间
+        sleep(2);
+    }
+    return NULL;
+}
+
+int main() {
+    pthread_t prod_thread, cons_thread;
+
+    // 初始化信号量
+    sem_init(&empty, 0, BUFFER_SIZE); // 初始值为缓冲区大小
+    sem_init(&full, 0, 0);            // 初始值为0
+
+    // 创建生产者和消费者线程
+    pthread_create(&prod_thread, NULL, producer, NULL);
+    pthread_create(&cons_thread, NULL, consumer, NULL);
+
+    // 等待线程结束（实际上不会，因为是无限循环）
+    pthread_join(prod_thread, NULL);
+    pthread_join(cons_thread, NULL);
+
+    // 销毁互斥锁和信号量
+    pthread_mutex_destroy(&mutex);
+    sem_destroy(&empty);
+    sem_destroy(&full);
+
+    return 0;
+}
+```
+
+
+
+- **互斥锁 `mutex`**：保护对缓冲区的访问，确保生产者和消费者不会同时修改缓冲区。
+
+- **信号量 `empty` 和 `full`**：
+  - `empty`：表示缓冲区中的空闲槽位数量，防止生产者溢出缓冲区。
+  - `full`：表示缓冲区中的已用槽位数量，防止消费者读取空缓冲区。
+
+- **生产者线程**：
+  - 等待 `empty` 信号量，确保有空闲槽位。
+  - 加锁，安全地写入缓冲区。
+  - 解锁，离开临界区。
+  - 增加 `full` 信号量，通知消费者有新数据。
+
+- **消费者线程**：
+  - 等待 `full` 信号量，确保有数据可读。
+  - 加锁，安全地读取缓冲区。
+  - 解锁，离开临界区。
+  - 增加 `empty` 信号量，通知生产者有空闲槽位。
+
+#### **错误的使用Semaphore作为Mutex**
+
+如果尝试使用Semaphore替代Mutex，可能会导致以下问题：
+
+- **多个线程同时进入临界区**：Semaphore没有所有权概念，无法保证只有一个线程在临界区。
+
+- **无法确保对缓冲区的互斥访问**：这可能导致数据竞争和缓冲区数据损坏。
+
+
+
+假设我们尝试用一个二进制信号量 `sem_mutex` 替代互斥锁：
+
+```c
+sem_t sem_mutex;
+```
+
+在 `main()` 中初始化：
+
+```c
+sem_init(&sem_mutex, 0, 1); // 初始值为1，相当于互斥量
+```
+
+在生产者和消费者中，用 `sem_wait()` 和 `sem_post()` 替代 `pthread_mutex_lock()` 和 `pthread_mutex_unlock()`。
+
+然而，由于Semaphore没有所有权，可能导致以下问题：
+
+- **错误释放信号量**：如果一个线程错误地多次调用 `sem_post()`，计数器会增加，导致多个线程进入临界区。
+
+- **无法防止多个线程进入临界区**：Semaphore的计数器可能大于1，无法严格限制只有一个线程进入临界区。
+
+#### 直观介绍互斥锁和信号量误用
+我们使用咖啡厅厕所的案例来更直观的描述为什么不能混用信号量和互斥锁
+
+
+假设一间咖啡厅有 **3** 间厕所，对应有 **3** 把厕所钥匙，挂在柜台上。顾客需要使用厕所时，可以从柜台拿走一把钥匙，然后找到一间空闲的厕所使用。
+
+- **信号量对应的情况：** 这里，信号量的计数器初始值为 **3**，表示有 **3** 个可用资源（厕所）。当顾客拿走一把钥匙（`sem_wait()`），信号量计数器减一。当顾客使用完厕所后，将钥匙归还柜台（`sem_post()`），信号量计数器加一。
+
+**那么这里出现了一个个问题：**
+
+- **无法知道具体哪间厕所是空闲的：** 顾客拿到钥匙后，并不知道哪间厕所是空的，需要自己去寻找。这可能导致多个顾客同时尝试进入同一间厕所，造成尴尬的场面。
+
+也就代表了，信号量其实 **缺乏对特定资源的控制：** 信号量仅控制资源的数量（即有多少个厕所可用），但不控制对具体某个资源的访问。
+
+---
+
+#### **解决方案与最佳实践**
+
+**使用Mutex保护特定资源：**
+
+- **每个资源对应一个Mutex：** 为每个可区分的资源（如每间厕所）设置一个Mutex，线程在访问资源前，必须获取对应的Mutex。
+
+- **明确的资源控制：** 线程通过获取特定的Mutex，明确知道自己将要访问哪个资源，避免了资源争用。
+
+**信号量用于控制资源总量：**
+
+- **控制并发数量：** 信号量可以用于限制同时访问资源的线程数量，但需要配合其他机制来管理具体资源。
+
+- **配合资源池：** 使用信号量控制资源总量，结合资源池来分配和跟踪具体资源。
+
+---
+
+
+
+### 3.2 Case Study 1. Concurrency in Linux Kernel Development
+
+在《Linux Kernel Development》一书中，作者讨论了Linux内核中并发的实现和管理。由于Linux内核需要同时处理多个进程、线程和中断，因此并发是内核设计和开发的核心主题之一。
+
+**Main Content：**
+
+1. **进程和线程管理**
+
+   - **统一的任务模型**：Linux将进程和线程统一为任务（task），都由`task_struct`结构表示。
+   - **线程的实现**：线程被视为共享某些资源（如内存空间）的轻量级进程，通过`clone()`系统调用创建。
+   - **调度器**：内核调度器负责在CPU上分配和调度任务，支持多种**调度策略**（参考上一章节）。
+
+2. **同步原语**
+   
+   **Synchronization Primitives**是操作系统或编程语言提供的一组底层机制，用于在并发编程中协调多个线程或进程对共享资源的访问。它们用于解决并发环境下的同步问题，防止数据竞争、死锁等问题，确保程序的正确性和一致性。
+   - **自旋锁（Spinlocks）**：用于在多处理器环境下保护共享数据，防止多个CPU同时访问导致的数据竞争。自旋锁在持有锁的期间会禁用本地中断，以防止中断处理程序访问同一资源。
+   - **信号量（Semaphores）**：适用于可能需要睡眠的场景，允许在资源不可用时阻塞线程。
+   - **读写锁（RWLocks）**：允许多个线程同时读取资源，但在写入时需要独占访问。
+   - **顺序锁（Seqlocks）**：提供了一种高效的读写锁机制，适用于读多写少的场景。
+
+3. **原子操作**
+
+   - **原子变量和操作**：提供对基本数据类型的原子性操作，防止在并发环境下的数据竞争。
+
+4. **并发挑战**
+
+   - **竞态条件**：讨论了数据竞争的产生原因和检测方法。
+   - **死锁和活锁**：介绍了可能导致系统陷入无法推进状态的情形，以及如何避免。
+
+**示例：使用自旋锁保护临界区**
+
+```c
+#include <linux/spinlock.h>
+
+spinlock_t my_lock; // 定义自旋锁
+
+// 初始化自旋锁
+void init_lock(void) {
+    spin_lock_init(&my_lock);
+}
+
+// 在临界区前加锁
+void critical_section(void) {
+    spin_lock(&my_lock);   // 获取锁，可能会自旋等待
+    // 临界区代码，访问共享资源
+    spin_unlock(&my_lock); // 释放锁
+}
+```
+
+**解释：**
+
+- **`spin_lock_init`**：初始化自旋锁。
+- **`spin_lock`和`spin_unlock`**：获取和释放自旋锁。在获取锁期间，若锁已被占用，CPU将持续自旋等待，适用于短时间的临界区。
+
+---
+
+### 3.3 Case Study 2. **Concurrency in《xv6, a simple operating system》**
+
+在xv6中，并发主要通过多进程和内核线程的方式体现。
+
+**Main Content：**
+
+1. **进程管理**
+
+   - **进程创建和上下文切换**：实现了`fork()`、`exec()`等系统调用，支持进程的创建和程序的加载。
+   - **调度器**：采用简单的轮转调度算法，让每个进程按顺序使用CPU。
+
+2. **同步机制**
+
+   - **自旋锁**：在内核中使用自旋锁保护共享数据结构，防止多个CPU同时访问导致的数据不一致。
+   - **睡眠锁**：用于需要睡眠等待的场景，当资源不可用时，进程会睡眠，释放CPU给其他进程。
+
+3. **中断处理与并发**
+
+   - **中断处理程序**：在处理中断时，需要注意与普通进程之间的同步，防止数据竞争。
+   - **禁用中断**：在关键的代码段中，可能需要临时禁用中断，确保原子性。
+
+**示例：xv6中的自旋锁实现（简化版）**
+
+```c
+// 自旋锁的数据结构
+struct spinlock {
+    uint locked;       // 锁的状态：0未锁定，1已锁定
+    // 调试信息（可选）
+    char *name;        // 锁的名称
+};
+
+// 获取自旋锁
+void acquire(struct spinlock *lk) {
+    pushcli(); // 关闭中断，防止中断过程中访问共享资源
+
+    // 使用原子操作尝试获取锁
+    while (xchg(&lk->locked, 1) != 0)
+        ; // 自旋等待
+
+    // 锁已获取
+}
+
+// 释放自旋锁
+void release(struct spinlock *lk) {
+    // 释放锁
+    xchg(&lk->locked, 0);
+    popcli(); // 恢复中断状态
+}
+```
+
+**解释：**
+
+- **`xchg`函数**：原子交换操作，用于在获取和释放锁时防止竞争。
+- **`pushcli`和`popcli`**：用于关闭和恢复中断，防止中断处理程序访问临界区。
+- **自旋等待**：在锁不可用时，CPU会持续循环等待，适用于短时间的锁定。
+
+---
+
+
+### 3.4 Related Concept Explaination
+
+此章节用于解释一些相关的函数，如果你已经了解了，可以跳过阅读
+
+---
+
+#### 3.4.1 **`fork()` System Call**
+
+**什么是 `fork()`？**
+
+- **`fork()`** 是在 Unix 和类 Unix 操作系统（如 Linux）中用于创建新进程的系统调用。
+- 当一个进程（称为**父进程**）调用 `fork()` 时，操作系统会创建一个**子进程**，它是父进程的**拷贝**。
+
+**`fork()` 的工作方式：**
+
+- **复制进程空间**：子进程获得父进程的一个几乎完全相同的副本，包括代码、数据、打开的文件描述符等。
+- **独立运行**：子进程与父进程在创建后独立运行，各自拥有自己的内存空间。
+- **返回值区别**：
+  - 在父进程中，`fork()` 返回子进程的进程 ID（PID）。
+  - 在子进程中，`fork()` 返回 `0`。
+
+**为什么需要 `fork()`？**
+
+- **多任务处理**：允许一个程序同时执行多个任务。
+- **服务器并发**：服务器可以为每个客户端请求创建一个子进程来处理。
+
+**Cide Example：**
+
+```c
+#include <stdio.h>
+#include <unistd.h>
+
+int main() {
+    pid_t pid;
+
+    pid = fork(); // 创建子进程
+
+    if (pid < 0) {
+        // fork() 失败
+        fprintf(stderr, "Fork failed\n");
+        return 1;
+    } else if (pid == 0) {
+        // 子进程
+        printf("This is the child process. PID: %d\n", getpid());
+    } else {
+        // 父进程
+        printf("This is the parent process. Child PID: %d\n", pid);
+    }
+
+    return 0;
+}
+```
+
+
+
+
+#### 3.4.2 **`task_struct`**
+
+**什么是 `task_struct`？**
+
+- 在 **Linux 内核**中，`task_struct` 是用于表示**进程（或线程）**的核心数据结构。
+- 每个正在运行或已创建的进程/线程都有一个对应的 `task_struct`，它被称为**进程控制块（PCB）**。
+
+**`task_struct` 包含哪些信息？**
+
+- **进程状态**：运行、就绪、等待、停止等。
+- **进程 ID（PID）**和**父进程 ID（PPID）**。
+- **进程优先级**：用于调度。
+- **内存信息**：虚拟内存、页表等。
+- **打开的文件描述符列表**。
+- **信号处理信息**。
+- **线程组信息**：如果进程包含多个线程。
+- **调度器相关信息**：如上次运行时间、运行队列等。
+
+**为什么需要 `task_struct`？**
+
+- **进程管理**：内核通过 `task_struct` 来跟踪和管理系统中的所有进程和线程。
+- **资源分配**：存储了与进程相关的所有资源信息，方便内核进行资源管理。
+
+**示意图：**
+
+```
+task_struct {
+    pid_t pid;                // 进程 ID
+    pid_t ppid;               // 父进程 ID
+    long state;               // 进程状态
+    unsigned int priority;    // 优先级
+    struct mm_struct *mm;     // 内存信息
+    struct files_struct *files; // 打开的文件
+    // ... 其他成员
+}
+```
+
+
+
+
+#### 3.4.3 **`clone()` System Call**
+
+**什么是 `clone()`？**
+
+- **`clone()`** 是 Linux 特有的系统调用，用于创建一个新进程或线程。
+- 与 `fork()` 类似，但 `clone()` 提供了更细粒度的控制，可以指定父进程和子进程之间共享哪些资源。
+
+**`clone()` 的特点：**
+
+- **共享资源**：可以选择性地共享虚拟内存、文件描述符、信号处理等。
+- **创建线程**：通过共享内存空间，`clone()` 可以用于实现线程，线程就是共享同一地址空间的执行单元。
+- **灵活性**：通过指定不同的标志（flags），`clone()` 可以创建传统的进程、线程，或者介于两者之间的轻量级进程。
+
+**`clone()` 的常用标志（flags）：**
+
+- **`CLONE_VM`**：共享内存空间。
+- **`CLONE_FS`**：共享文件系统信息（当前工作目录、根目录）。
+- **`CLONE_FILES`**：共享文件描述符表。
+- **`CLONE_SIGHAND`**：共享信号处理程序。
+- **`CLONE_THREAD`**：与父进程在同一个线程组中，表示是一个线程。
+
+**`clone()` 的函数原型：**
+
+```c
+int clone(int (*fn)(void *), void *child_stack, int flags, void *arg);
+```
+
+- **`fn`**：子进程/线程要执行的函数。
+- **`child_stack`**：指向子进程/线程的栈顶。
+- **`flags`**：控制共享的标志。
+- **`arg`**：传递给函数 `fn` 的参数。
+
+
+
+
+
+
+**进一步的解释和比喻**
+
+- **`fork()` 类似于**：在办公环境中，复制了一份完整的文件夹，包括所有的文件和子文件夹。新的文件夹（子进程）与原来的文件夹（父进程）独立存在，修改其中一个不会影响另一个。
+
+- **`clone()`（用于创建线程）类似于**：在同一个文件夹中，多个员工（线程）一起协作，他们共享同一个文件夹和文件（共享内存），可以更高效地完成任务，但需要协调好，防止同时修改同一个文件导致混乱（数据竞争）。
+
+---
+
+
 
 ## Chapter 4 System Calls
+
+
+
+### 4.1 System Call Basic
+
+
+ **系统调用（System Call）** 是操作系统提供给用户程序的一组接口(隐藏了实现细节），用于请求内核执行特权操作。这些操作包括文件操作、进程管理、内存分配、网络通信等。比如当一个程序调用`read()`函数从文件读取数据时，实际上是通过系统调用`sys_read`请求内核读取数据。
+
+
+
+### 4.2 System Call Mechanism
+
+**步骤：**
+
+1. **设置系统调用号和参数** 用户程序将要调用的系统调用号和相关参数放入指定的寄存器或栈中。
+
+2. **Trap** 执行一条特殊的指令（如`int 0x80`或`syscall`），触发从用户模式到内核模式的切换。
+
+3. **内核处理：** 内核根据系统调用号，找到对应的内核函数，使用传入的参数执行操作。
+
+4. **返回用户空间：** 操作完成后，内核将返回值放入指定的寄存器，切换回用户模式，继续执行用户程序。
+
+**关键点：**
+
+- **特权级别切换：** 系统调用是受控的特权级别切换，防止用户程序直接访问敏感资源，保障系统安全。
+
+- **上下文保存与恢复：** 在切换过程中，需要保存和恢复CPU的执行上下文，确保程序的连续性。（具体可以看Context Switching章节）
+
+**示意图：**
+
+```
+用户程序
+   |
+   | 调用库函数，如 read()
+   v
+用户态 -> 内核态（通过陷入指令）
+   |
+内核处理系统调用
+   |
+   ^ 
+用户态 <- 内核态（返回结果）
+   |
+   | 继续执行用户程序
+```
+
+
+
+### 4.3 **Wrapper?**
+
+**Wrapper**，在编程中通常指**封装函数**，它是对某个函数或功能的封装，以提供更方便或安全的接口。
+
+**在系统调用中的作用：**
+
+- **用户态的库函数：** 系统调用往往由标准库提供的函数封装，例如C标准库中的`printf()`、`read()`等，这些函数就是系统调用的封装器。
+
+- **参数处理和兼容性：** Wrapper函数可以处理参数的格式转换、错误检查、兼容性处理等，简化用户程序的编写。
+
+
+
+  比如刚刚提到的例子，`read()`库函数是对系统调用`sys_read`的封装，用户程序调用`read()`，由库函数负责触发系统调用并处理返回值。
+
+**为什么需要Wrapper：**
+
+- **简化接口：** 提供更高级、更易用的函数接口，隐藏底层细节。
+
+- **错误处理：** 统一处理错误，提供一致的错误报告方式。
+
+- **跨平台兼容性：** 在不同的系统上，底层系统调用可能不同，Wrapper可以屏蔽这些差异。
+
+
+
+### **4.4 Error Handling**
+
+**定义：**
+
+- **错误处理**是在程序中检测、报告和处理错误的机制，确保程序能够优雅地处理异常情况，不至于崩溃或产生错误结果。
+
+**在系统调用中的错误处理：**
+
+- **错误返回值：** 系统调用在发生错误时，通常返回一个特殊值（如`-1`），并设置全局变量`errno`来指示错误类型。
+
+- **错误检查：** 用户程序在调用系统调用或库函数后，需要检查返回值，判断是否发生错误，并采取相应的措施。
+
+**代码：**
+
+```c
+#include <stdio.h>
+#include <unistd.h>
+#include <errno.h>
+
+int main() {
+    ssize_t ret;
+    char buffer[100];
+
+    ret = read(-1, buffer, sizeof(buffer)); // 尝试从非法文件描述符读取
+
+    if (ret == -1) {
+        // 发生错误，输出错误信息
+        perror("Error reading");
+    }
+
+    return 0;
+}
+```
+
+
+
+- **`read(-1, buffer, sizeof(buffer));`**：尝试从文件描述符`-1`读取数据，显然是非法的。
+
+- **`if (ret == -1)`**：检查返回值是否为`-1`，表示发生错误。
+
+- **`perror("Error reading");`**：输出错误信息，`perror()`会根据`errno`的值输出对应的错误描述。
+
+---
+
+
+> notes **此处遗留LINUX和XV6的System Call介绍，为避免各位混淆，考试完我会补充。**
+
+## Chapter 5 Memory Management
+## Chapter 6 IO/File Management
+## Chapter 7 Virtualisation
+## Chapter 8 Security Model 
