@@ -51,7 +51,18 @@ draft = false
   - [System call mechanism](#42-system-call-mechanism)
   - [Wrapper](#43-wrapper)
   - [Error Handeling](#44-error-handling)
-
+- [Memory Management](#chapter-5-memory-management)
+   - [Address Translation, Memory Management Goals](#51-address-translation--memory-management-goals)
+   - [Address Translation](#511-address-translation-explained)
+   - [Goals for Memory Management](#512-goals-for-memory-management)
+   - [Paged Memory](#52-paged-memory)
+   - [Segmented Memory](#53-segmented-memory)
+   - [Segmentation with Paging](#54-segmentation-with-paging)
+   - [Page Replacement Algorithms](#55-page-replacement-algorithms)
+      - [LRU](#551-lruleast-recently-used---最近最少使用)
+      - [LFU](#552-lfuleast-frequently-used---最不常用)
+      - [Real-world Example](#553-实际应用中的选择)
+   - [Extended Reading](#56-extended-reading-address-translation-for-memory-allocation-algorithms)
 ## Chapter 1 Basic Concept
 ### 1.1 Related Concepts
 #### **1.1.1 CPU 中央处理器**
@@ -2054,6 +2065,625 @@ int main() {
 > notes **此处遗留LINUX和XV6的System Call介绍，为避免各位混淆，考试完我会补充。**
 
 ## Chapter 5 Memory Management
+内存管理是操作系统的一项核心功能，负责控制和协调计算机主内存（如果不清楚什么是内存请回看第1章关于主内存/硬盘的内容）的使用。其主要目的包括：
+
+- 内存分配：为进程和应用程序分配所需的内存空间。
+- 内存回收：当进程或应用程序不再需要内存时，回收并重新利用这些内存。
+- 内存保护：防止一个进程访问或修改另一个进程的内存区域，确保数据安全和系统稳定。
+- 内存共享：在需要时，允许多个进程共享同一内存区域，实现高效的数据交换和通信。
+- 内存管理确保了系统资源的有效利用，提高了系统的性能和可靠性。
+
+实现操作系统内存管理的核心机制是**地址绑定（Address Binding)**。大家可以回顾老师的课件，地址绑定其实是一种广义的从逻辑地址/虚拟地址到物理地址的映射过程。为了提高运行时效率，大多数系统配备了**专门的硬件**来进行地址转换；这些硬件由操作系统内核管理。然而，在某些系统中，地址转换是由**可信的编译器、链接器或字节码解释器**提供的。在其他系统中，应用程序通过指针转换来管理其自身数据结构的状态。在还有一些系统中，采用了混合模式，即地址在软件和硬件中同时进行转换。选择哪种方式通常是在性能、灵活性和成本之间进行的工程权衡。
+
+上述段落中的各部分内容分别对应地址绑定的哪些部分：
+
+---
+#### **1. 专门的硬件进行地址转换，由操作系统内核管理**
+**对应地址绑定的部分：执行时绑定（Execution-Time Binding）**
+
+**why?**
+- **执行时绑定**指的是在程序执行过程中，由硬件（如内存管理单元，MMU）动态地将虚拟地址转换为物理地址。这种方式通常由操作系统内核管理，负责维护页表和其他内存管理数据结构。
+- **段落对应内容：**
+  > 为了提高运行时效率，大多数系统配备了专门的硬件来进行地址转换；这些硬件由操作系统内核管理。
+
+**特点：**
+- 高效的地址转换，减少了转换延迟。
+- 依赖于硬件支持，如MMU和TLB（Translation Lookaside Buffer）。
+- 支持虚拟内存、多任务和内存保护。
+
+---
+
+#### **2. 地址转换由可信的编译器、链接器或字节码解释器提供**
+**对应地址绑定的部分：编译时绑定（Compile-Time Binding）和加载时绑定（Load-Time Binding）**
+
+**why?**
+- **编译时绑定**是在程序编译阶段将逻辑地址直接转换为物理地址。这种方式要求程序在固定的物理内存地址运行，缺乏灵活性。
+- **加载时绑定**是在程序加载到内存时进行地址绑定，允许程序在不同的物理地址运行。
+- **段落对应内容：**
+  > 然而，在某些系统中，地址转换是由可信的编译器、链接器或字节码解释器提供的。
+
+**特点：**
+- **编译时绑定**：
+  - 简单高效，但不支持动态内存分配和多道程序设计。
+  - 适用于嵌入式系统或需要固定内存地址的应用。
+  
+- **加载时绑定**：
+  - 提供一定的灵活性，支持程序在不同内存位置加载。
+  - 更适合支持多道程序设计的系统，但仍有限制。
+
+---
+
+#### **3. 应用程序通过指针转换管理自身数据结构的状态**
+**对应地址绑定的部分：执行时绑定（Execution-Time Binding）**
+
+**why?**
+- **执行时绑定**不仅可以由操作系统和硬件完成，也可以由应用程序自身通过软件机制管理。这种方式通常涉及程序内的指针操作和数据结构管理，以实现地址映射。
+- **段落对应内容：**
+  > 在其他系统中，应用程序通过指针转换来管理其自身数据结构的状态。
+
+**特点：**
+- **灵活性**：应用程序可以根据需要动态管理内存地址。
+- **复杂性**：增加了编程复杂性，需要开发者手动管理地址转换，容易出错。
+- **性能**：可能比硬件加速的地址转换效率低，但在某些特定场景下可能具有优势。
+
+---
+
+#### **4. 混合模式，地址在软件和硬件中同时进行转换(optional)**
+**对应地址绑定的部分：混合绑定模式（Hybrid Binding）**
+
+**why?**
+- **混合绑定模式**结合了硬件和软件两种方式的地址转换，以兼顾性能和灵活性。这种模式利用硬件加速的优势，同时通过软件机制提供额外的灵活性或功能。
+- **段落对应内容：**
+  > 在还有一些系统中，采用了混合模式，即地址在软件和硬件中同时进行转换。
+
+**特点：**
+- **性能与灵活性平衡**：利用硬件的高效地址转换，同时通过软件实现特定需求或扩展功能。
+- **复杂性**：系统设计更加复杂，需要协调硬件和软件的配合。
+- **成本**：可能增加系统成本，因为需要同时支持硬件和软件的地址转换机制。
+
+---
+
+然而，无论采用何种实现机制，所提供的功能通常是相同的，所以，地址转换机制其实是最重要的机制。
+### 5.1 Address Translation & Memory Management Goals
+#### 5.1.1 Address Translation Explained
+我们可以把 Address Translation 当作是一个黑箱（Black Box) 来处理。处理器拿到了虚拟地址，想要通过地址 转换得到我们的物理地址，从而访问程序的数据，我们其实已经知道了 Address Translation 工作起来会产生什么样的结果：
+   1. 如果地址无效，那么抛出异常；
+   2. 如果地址有效，那么转换成物理地址；
+Address Translation就像是一个接口，那么我们理所当然的，要根据不同的功能目标，来实现不同的 Address Translation。
+#### 5.1.2 Goals for Memory Management.
+- **内存保护(Memory Protection)**。我们需要能够限制一个进程对某些内存区域的访问，例如，防止其访问不属于该进程的内存。然而，我们通常希望限制程序仅访问其自身的内存，例如，防止指针错误覆盖代码区域，或在程序引用特定数据位置时触发调试器中断。
+
+- **内存共享(Memory Sharing)**。我们希望允许多个进程共享选定的内存区域。这些共享区域可以很大（例如，如果我们在多个执行相同程序的进程之间共享程序的代码段）或相对较小（例如，如果我们共享一个公共库、一个文件或一个共享数据结构）。
+
+- **灵活的内存放置(Flexible Memory Placement)**。我们希望操作系统能够灵活地将一个进程（以及进程的每个部分）放置在物理内存的任意位置；这将使我们能够更有效地利用物理内存。如我们将在下一章看到的，灵活地将进程数据分配到物理内存位置也将使我们能够更有效地利用芯片内缓存。
+
+- **稀疏地址(Sparsing Address)**。许多程序拥有多个动态内存区域，这些区域在程序执行过程中可以改变大小：用于数据对象的堆，每个线程的栈，以及内存映射文件。现代处理器拥有64位地址空间，允许每个动态对象根据需要有足够的空间增长，但这也使得地址转换功能更加复杂。
+
+- **运行时查找效率(Runtime lookup efficiency)**。硬件地址转换发生在每次指令获取和每次数据加载与存储时。如果一个查找平均需要比指令本身更长的执行时间，这将是不可行的。起初，我们讨论的许多方案可能看起来极不实用！我们将讨论如何使即使是最复杂的转换系统也能高效运行。
+
+- **紧凑的转换表(Compact translation tables)**。我们还希望转换的空间开销最小化；任何我们需要的数据结构都应相对于正在管理的物理内存量来说尽可能小。
+
+- **可移植性(Portability)**。不同的硬件架构在实现转换时会有不同的选择；如果一个操作系统内核要在多种处理器架构之间轻松移植，它需要能够将其（与硬件无关的）数据结构映射到每种架构的具体能力。
+
+>notes: 阅读下面的文章时请保证已经阅读完课件（Fragmentation）的部分，**Fragmentation** 将作为一个前鉴知识出现在文章中
+
+### 5.2 Paged Memory
+
+
+**分页内存**是一种将虚拟地址空间和物理内存划分为固定大小的块（称为页和页框）的内存管理技术。分页的主要目的是消除外部碎片，提高内存利用率，并简化内存分配。
+
+#### **基本概念**
+
+- **页（Page）**：虚拟地址空间的固定大小块，通常为4KB。
+- **页框（Frame）**：物理内存中的固定大小块，与页大小相同。
+- **页表（Page Table）**：记录虚拟页号与物理页框号之间映射关系的数据结构。
+
+#### **地址转换过程**
+
+1. **逻辑地址分解**：将虚拟地址分为页号和页内偏移。例如，32位地址中，高20位为页号，低12位为页内偏移。
+2. **查找页表**：根据页号在页表中查找对应的物理页框号。
+3. **生成物理地址**：将物理页框号与页内偏移组合，得到最终的物理地址。
+
+#### **多级页表**
+
+为了处理大规模地址空间并减少页表的内存开销，采用**多级页表**（如二级、三级、四级页表）结构。多级页表通过分层管理页表，只为实际使用的页分配页表部分，节省内存空间。
+
+#### **优点**
+
+- **消除外部碎片**：由于页和页框大小固定，内存分配时不会产生外部碎片。
+- **简化内存管理**：页表结构统一，易于管理和实现。
+- **灵活性高**：支持虚拟内存，使程序可以使用比物理内存更大的地址空间。
+
+#### **缺点**
+
+- **内部碎片**：由于页大小固定，可能会导致内存浪费（如最后一页未完全使用）。
+- **页表开销**：需要维护页表，占用一定的内存空间，尤其是在大地址空间下。
+- **地址转换开销**：每次内存访问都需要进行地址转换，虽然通过TLB（快表）可以优化，但仍有性能影响。
+
+#### **Real-world example**
+
+- **x86架构**：使用四级页表（PGD、PUD、PMD、PTE）来管理虚拟地址到物理地址的映射。
+- **ARM架构**：也采用多级页表结构，实现高效的地址转换。
+
+---
+
+**分页内存模拟器代码：**
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+
+#define PAGE_SIZE 4096      // 每页大小为4KB
+#define NUM_PAGES 16        // 虚拟内存页数
+#define NUM_FRAMES 8        // 物理内存页框数
+
+// 页表项结构
+typedef struct {
+    int frame_number;      // 物理页框号
+    bool valid;            // 页是否在物理内存中
+} PageTableEntry;
+
+// 页表结构
+typedef struct {
+    PageTableEntry entries[NUM_PAGES];
+} PageTable;
+
+// 物理内存结构
+typedef struct {
+    char *frames[NUM_FRAMES];    // 每个帧存储的数据
+    int free_frames[NUM_FRAMES]; // 空闲帧列表
+    int free_count;              // 空闲帧数量
+} Memory;
+
+// CPU结构，负责地址转换和内存访问
+typedef struct {
+    PageTable *page_table;
+    Memory *memory;
+} CPU;
+
+// 初始化内存
+Memory* initialize_memory() {
+    Memory *memory = (Memory*)malloc(sizeof(Memory));
+    for(int i = 0; i < NUM_FRAMES; i++) {
+        memory->frames[i] = NULL;
+        memory->free_frames[i] = i;
+    }
+    memory->free_count = NUM_FRAMES;
+    return memory;
+}
+
+// 初始化页表
+PageTable* initialize_page_table() {
+    PageTable *pt = (PageTable*)malloc(sizeof(PageTable));
+    for(int i = 0; i < NUM_PAGES; i++) {
+        pt->entries[i].valid = false;
+        pt->entries[i].frame_number = -1;
+    }
+    return pt;
+}
+
+// 分配一个空闲帧
+int allocate_frame(Memory *memory) {
+    if(memory->free_count == 0) {
+        fprintf(stderr, "No free frames available!\n");
+        exit(EXIT_FAILURE);
+    }
+    return memory->free_frames[--memory->free_count];
+}
+
+// 释放一个帧
+void free_frame(Memory *memory, int frame_number) {
+    memory->frames[frame_number] = NULL;
+    memory->free_frames[memory->free_count++] = frame_number;
+}
+
+// 处理缺页中断
+void handle_page_fault(CPU *cpu, int page_number) {
+    int frame_number = allocate_frame(cpu->memory);
+    // 模拟从磁盘加载页到物理内存
+    cpu->memory->frames[frame_number] = malloc(PAGE_SIZE);
+    snprintf(cpu->memory->frames[frame_number], PAGE_SIZE, "Data_of_Page_%d", page_number);
+    // 更新页表
+    cpu->page_table->entries[page_number].frame_number = frame_number;
+    cpu->page_table->entries[page_number].valid = true;
+    printf("Loaded Page %d into Frame %d.\n", page_number, frame_number);
+}
+
+// 地址转换函数
+int translate_address(CPU *cpu, int virtual_address) {
+    int page_number = virtual_address / PAGE_SIZE;
+    int offset = virtual_address % PAGE_SIZE;
+
+    if(page_number >= NUM_PAGES) {
+        fprintf(stderr, "Invalid virtual address: %d\n", virtual_address);
+        exit(EXIT_FAILURE);
+    }
+
+    PageTableEntry entry = cpu->page_table->entries[page_number];
+    if(!entry.valid) {
+        printf("Page %d not in memory. Handling page fault...\n", page_number);
+        handle_page_fault(cpu, page_number);
+        entry = cpu->page_table->entries[page_number];
+    }
+
+    int physical_address = entry.frame_number * PAGE_SIZE + offset;
+    return physical_address;
+}
+
+// 读取内存
+void read_memory(CPU *cpu, int virtual_address) {
+    int physical_address = translate_address(cpu, virtual_address);
+    int frame_number = physical_address / PAGE_SIZE;
+    int offset = physical_address % PAGE_SIZE;
+    char *data = cpu->memory->frames[frame_number];
+    printf("Reading from Virtual Address %d (Physical Address %d): %s\n", virtual_address, physical_address, data);
+}
+
+// 写入内存
+void write_memory(CPU *cpu, int virtual_address, const char *data) {
+    int physical_address = translate_address(cpu, virtual_address);
+    int frame_number = physical_address / PAGE_SIZE;
+    int offset = physical_address % PAGE_SIZE;
+    // 模拟写入数据
+    snprintf(cpu->memory->frames[frame_number], PAGE_SIZE, "%s", data);
+    printf("Writing to Virtual Address %d (Physical Address %d): %s\n", virtual_address, physical_address, data);
+}
+
+// 释放内存
+void cleanup(CPU *cpu) {
+    for(int i = 0; i < NUM_FRAMES; i++) {
+        if(cpu->memory->frames[i] != NULL) {
+            free(cpu->memory->frames[i]);
+        }
+    }
+    free(cpu->memory);
+    free(cpu->page_table);
+    free(cpu);
+}
+
+// 示例使用
+int main() {
+    // 初始化系统
+    Memory *memory = initialize_memory();
+    PageTable *page_table = initialize_page_table();
+    CPU *cpu = (CPU*)malloc(sizeof(CPU));
+    cpu->page_table = page_table;
+    cpu->memory = memory;
+
+    // 访问一些虚拟地址
+    read_memory(cpu, 0);           // Page 0
+    write_memory(cpu, 8192, "Hello");   // Page 2
+    read_memory(cpu, 8192);        // Page 2
+    read_memory(cpu, 12288);       // Page 3
+    write_memory(cpu, 16384, "World");   // Page 4
+    read_memory(cpu, 16384);       // Page 4
+    read_memory(cpu, 20480);       // Page 5
+
+    // 清理资源
+    cleanup(cpu);
+    return 0;
+}
+
+```
+
+
+
+
+### 5.3 Segmented Memory
+
+
+**分段内存**是一种将虚拟地址空间划分为逻辑上相关的不同大小段（如代码段、数据段、堆栈段）的内存管理技术。分段的目的是更符合程序的逻辑结构，便于共享和保护。
+
+#### **基本概念**
+
+- **段（Segment）**：逻辑地址空间中的变长块，每个段代表程序的一个逻辑单元，如代码段、数据段、堆栈段。
+- **段表（Segment Table）**：记录段基址和段限长的数据结构。
+
+#### **地址转换过程**
+
+1. **逻辑地址分解**：将虚拟地址分为段号和段内偏移。例如，32位地址中，高16位为段号，低16位为段内偏移。
+2. **查找段表**：根据段号在段表中查找对应的段基址和段限长。
+3. **越界检查**：检查段内偏移是否超出段限长，防止非法访问。
+4. **生成物理地址**：将段基址与段内偏移相加，得到最终的物理地址。
+
+#### **优点**
+
+- **符合程序逻辑结构**：分段映射更贴合程序的代码、数据、堆栈等逻辑单元。
+- **灵活性高**：段的大小可变，适应不同内存需求，便于动态内存分配。
+- **内存共享和保护**：可以方便地共享代码段和数据段，设置不同段的访问权限，实现内存保护。
+
+#### **缺点**
+
+- **外部碎片**：由于段大小不固定，内存分配和释放可能导致外部碎片。
+- **复杂性增加**：需要维护段表和进行段内偏移的检查，增加实现复杂性。
+- **地址转换开销**：每次内存访问都需要查找段表和进行越界检查，影响性能。
+
+#### **Real-world Example**
+
+- **x86架构（早期模式）**：支持分段机制，通过段寄存器（如CS、DS、SS）进行段的选择和地址转换。
+- **Intel 80286**：引入分段保护，支持分段分页混合模式。
+
+
+### 5.4 Segmentation with Paging
+
+
+**分段分页**将虚拟地址空间首先划分为逻辑段，然后将每个段进一步划分为固定大小的页。这样既保留了分段的逻辑结构，又利用分页消除了外部碎片。
+
+#### **地址转换过程**
+
+1. **逻辑地址分解**：将虚拟地址分为段号、页号和页内偏移。
+2. **查找段表**：根据段号查找段表，获取段基址和段限长。
+3. **越界检查**：检查段内偏移是否超出段限长。
+4. **查找页表**：将段内偏移进一步分解为页号和页内偏移，根据页号查找页表，获取物理页框号。
+5. **生成物理地址**：将物理页框号与页内偏移相加，得到最终的物理地址。
+
+#### **优点**
+
+- **逻辑结构与内存管理结合**：既保留了分段的逻辑优势，又利用分页消除了外部碎片。
+- **内存保护与共享**：可以通过段表设置不同段的权限，结合分页的细粒度管理，实现更高效的内存保护和共享。
+- **灵活性与高效性**：支持动态内存分配和高效的地址转换。
+
+#### **缺点**
+
+- **实现复杂性增加**：需要同时管理段表和页表，增加系统实现的复杂性。
+- **地址转换开销**：相比纯分页或纯分段，混合模式的地址转换过程更复杂，可能增加性能开销。
+
+#### **Examples**
+
+- **Intel 80386及后续架构**：支持分段分页混合模式，实现更加灵活和高效的内存管理。
+
+**分段模拟器代码：**
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+
+// 段表项结构
+typedef struct {
+    int base;               // 段的物理基址
+    int limit;              // 段的大小（限制）
+    char permissions[4];   // 访问权限，如 "rwx"
+} SegmentTableEntry;
+
+// 段表结构
+typedef struct {
+    SegmentTableEntry entries[3]; // 假设有3个段：代码段、数据段、堆栈段
+} SegmentTable;
+
+// 分段内存管理结构
+typedef struct {
+    SegmentTable *segment_table;
+    char *physical_memory; // 模拟物理内存
+} SegmentedMemory;
+
+// 初始化段表
+SegmentTable* initialize_segment_table() {
+    SegmentTable *st = (SegmentTable*)malloc(sizeof(SegmentTable));
+    // 初始化代码段
+    st->entries[0].base = 0;
+    st->entries[0].limit = 1024;
+    strcpy(st->entries[0].permissions, "r-x");
+    // 初始化数据段
+    st->entries[1].base = 2048;
+    st->entries[1].limit = 2048;
+    strcpy(st->entries[1].permissions, "rw-");
+    // 初始化堆栈段
+    st->entries[2].base = 4096;
+    st->entries[2].limit = 512;
+    strcpy(st->entries[2].permissions, "rw-");
+    return st;
+}
+
+// 初始化分段内存
+SegmentedMemory* initialize_segmented_memory() {
+    SegmentedMemory *sm = (SegmentedMemory*)malloc(sizeof(SegmentedMemory));
+    sm->segment_table = initialize_segment_table();
+    sm->physical_memory = (char*)malloc(8192); // 假设物理内存为8KB
+    memset(sm->physical_memory, 0, 8192);
+    return sm;
+}
+
+// 地址转换函数
+int translate_address(SegmentedMemory *sm, int segment_number, int offset) {
+    if(segment_number < 0 || segment_number >= 3) {
+        fprintf(stderr, "Invalid segment number: %d\n", segment_number);
+        exit(EXIT_FAILURE);
+    }
+    SegmentTableEntry entry = sm->segment_table->entries[segment_number];
+    if(offset > entry.limit) {
+        fprintf(stderr, "Segmentation Fault: Offset %d exceeds segment limit %d.\n", offset, entry.limit);
+        exit(EXIT_FAILURE);
+    }
+    return entry.base + offset;
+}
+
+// 读取内存
+void read_memory(SegmentedMemory *sm, int segment_number, int offset) {
+    int physical_address = translate_address(sm, segment_number, offset);
+    char *data = sm->physical_memory + physical_address;
+    printf("Reading from Segment %d, Offset %d -> Physical Address %d: %s\n", segment_number, offset, physical_address, data);
+}
+
+// 写入内存
+void write_memory(SegmentedMemory *sm, int segment_number, int offset, const char *data) {
+    // 检查写权限
+    SegmentTableEntry entry = sm->segment_table->entries[segment_number];
+    if(segment_number == 0 && strchr(entry.permissions, 'w') == NULL) {
+        printf("Write permission denied for Segment %d.\n", segment_number);
+        return;
+    }
+    int physical_address = translate_address(sm, segment_number, offset);
+    strncpy(sm->physical_memory + physical_address, data, strlen(data));
+    printf("Writing to Segment %d, Offset %d -> Physical Address %d: %s\n", segment_number, offset, physical_address, data);
+}
+
+// 释放内存
+void cleanup(SegmentedMemory *sm) {
+    free(sm->segment_table);
+    free(sm->physical_memory);
+    free(sm);
+}
+
+// 示例使用
+int main() {
+    SegmentedMemory *sm = initialize_segmented_memory();
+
+    // 写入数据到数据段
+    write_memory(sm, 1, 100, "Variable_A");
+    write_memory(sm, 1, 2000, "Variable_B"); // 超出限长，触发错误
+
+    // 读取数据
+    read_memory(sm, 1, 100);
+    read_memory(sm, 1, 2000); // 超出限长，触发错误
+
+    // 写入代码段（只读权限，模拟权限检查）
+    write_memory(sm, 0, 50, "Modified_Code"); // 权限检查未实现，实际应阻止写入
+    read_memory(sm, 0, 50);
+
+    // 读取未定义的内存
+    read_memory(sm, 2, 10);
+
+    // 清理资源
+    cleanup(sm);
+    return 0;
+}
+
+```
+
+---
+### 5.5 Page Replacement Algorithms
+此章节仅仅介绍 LFU 和 LRU， 因为其他的页面调度算法较简单，建议结合老师的课件来看：
+
+
+#### 5.5.1 **LRU（Least Recently Used） - 最近最少使用**
+
+
+LRU是一种基于时间的缓存替换策略，优先淘汰那些最近最少被访问的数据。其核心思想是“最近使用过的数据在将来仍然可能会被使用，而长时间未被访问的数据可能不再需要”。
+
+**原理**
+
+
+
+假设有一个容量为3的缓存，缓存可以存储最多3个页面。访问顺序如下：
+
+1. **访问页面A**：
+   - 缓存状态：[A]
+   - A成为最近使用的页面。
+
+2. **访问页面B**：
+   - 缓存状态：[B, A]
+   - B成为最近使用的页面，A位于次要位置。
+
+3. **访问页面C**：
+   - 缓存状态：[C, B, A]
+   - C成为最近使用的页面，B和A依次向后。
+
+4. **再次访问页面A**：
+   - 缓存状态：[A, C, B]
+   - A被重新访问，成为最近使用的页面，C和B依次向后。
+
+5. **访问页面D**：
+   - 缓存已满，需要淘汰一个页面。
+   - 根据LRU策略，淘汰最久未被使用的页面B。
+   - 缓存状态：[D, A, C]
+
+**优点**
+- **简单高效**：实现相对简单，尤其在数据结构（如双向链表）支持下，能够高效地更新和访问缓存项。
+- **符合时间局部性**：对于大多数应用，最近使用的数据更有可能再次被使用，LRU能够有效提升缓存命中率。
+
+**缺点**
+- **维护开销**：需要额外的数据结构来跟踪访问顺序，可能导致一定的时间和空间开销。
+- **不适用于所有模式**：对于某些特定的访问模式（如循环访问大量数据），LRU可能无法有效提升命中率。
+
+**生产场景**
+- **操作系统页面替换**：操作系统在管理虚拟内存时，常使用LRU或其近似算法来决定哪些页面应被换出。
+- **Web浏览器缓存**：缓存最近访问过的网页资源，以加快页面加载速度。
+- **数据库缓存**：缓存最近查询的数据，提升查询性能。
+
+---
+
+#### 5.5.2 **LFU（Least Frequently Used） - 最不常用**
+
+
+LFU是一种**基于频率**的缓存替换策略，优先淘汰那些访问频率最低的数据。其核心思想是“被访问次数较少的数据在将来仍然可能不被需要，而被频繁访问的数据应保留在缓存中”。
+
+### **举例说明原理**
+
+
+
+假设同样有一个容量为3的缓存，访问顺序如下：
+
+1. **访问页面A**：
+   - 缓存状态：[A]
+   - A的访问频率：1
+
+2. **访问页面B**：
+   - 缓存状态：[A, B]
+   - A的访问频率：1，B的访问频率：1
+
+3. **访问页面A**：
+   - 缓存状态：[A, B]
+   - A的访问频率：2，B的访问频率：1
+
+4. **访问页面C**：
+   - 缓存状态：[A, B, C]
+   - A的访问频率：2，B的访问频率：1，C的访问频率：1
+
+5. **访问页面D**：
+   - 缓存已满，需要淘汰一个页面。
+   - 根据LFU策略，淘汰访问频率最低的页面B或C。
+   - 假设淘汰页面B。
+   - 缓存状态：[A, C, D]
+   - A的访问频率：2，C的访问频率：1，D的访问频率：1
+
+6. **再次访问页面C**：
+   - 缓存状态：[A, C, D]
+   - A的访问频率：2，C的访问频率：2，D的访问频率：1
+
+7. **访问页面E**：
+   - 缓存已满，需要淘汰一个页面。
+   - 根据LFU策略，淘汰访问频率最低的页面D。
+   - 缓存状态：[A, C, E]
+   - A的访问频率：2，C的访问频率：2，E的访问频率：1
+
+**优点**
+- **频率优先**：能够更好地保留那些被频繁访问的数据，适用于访问频率有明显分布的场景。
+- **高命中率**：在某些应用中，LFU能够提供比LRU更高的缓存命中率。
+
+**雀点**
+- **实现复杂**：需要维护访问频率和相应的数据结构，增加了实现的复杂性和维护开销。
+- **缓存污染**：对于频率较低但近期被访问的数据，可能会被错误地淘汰。
+- **老数据问题**：长期未被访问但未来可能被访问的数据可能被淘汰，影响系统性能。
+
+**实例**
+- **数据库缓存**：缓存访问频率高的数据页，提升数据库查询性能。
+- **内容分发网络（CDN）**：缓存高频访问的静态资源，提升内容分发效率。
+- **日志系统**：缓存高频写入的数据，优化日志记录性能。
+
+---
+
+
+#### **5.5.3 实际应用中的选择**
+
+**1. 操作系统页面替换**
+现代操作系统（如Linux）通常采用近似LRU算法（如Clock算法）来管理页面替换。这是因为LRU在处理时间局部性方面表现良好，同时实现相对高效。
+**2. Web缓存**
+Web服务器和内容分发网络（CDN）常采用LRU或LFU算法，根据内容访问模式选择合适的替换策略。例如，静态资源（如图片、CSS文件）可能使用LFU来保留高频访问的资源，而动态内容则可能使用LRU。
+
+**3. 数据库缓存**
+数据库系统（如Redis、Memcached）通常提供多种缓存替换策略，包括LRU和LFU，用户可以根据具体应用场景选择最合适的策略。例如，高频查询的数据可以使用LFU来保持在缓存中，而一般查询的数据可以使用LRU。
+
+---
+
+
+
+
+
+
+### 5.6 Extended Reading, Address Translation for Memory Allocation Algorithms
+>notes此章节将在课程完成后更新，因为涉及实际内容和较多课程未覆盖内容。
 ## Chapter 6 IO/File Management
 ## Chapter 7 Virtualisation
 ## Chapter 8 Security Model 
